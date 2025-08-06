@@ -1,3 +1,4 @@
+import os
 import matplotlib.pyplot as plt
 from pathlib import Path
 from EMCrafter.signal import SignalGenerator
@@ -5,12 +6,13 @@ from EMCrafter.signal import SignalGenerator
 THIS_DIR = Path(__file__).parent
 TUTO_PATH = f"{THIS_DIR}/../../TUTORIAL"
 
+EMAN2_DIR = os.getenv("CLONE_PATH", f"{THIS_DIR}/../../../../../eman2/")
+
 # Setup
 verbose = 2
 show = False
 
 # Set variables:
-EMAN2_DIR = f"{THIS_DIR}/../../../../../eman2/" # EMAN2 directory path
 PDB = f"{TUTO_PATH}/data/pdbs/V1.pdb"           # PDB file path
 OUTPUT = f"{THIS_DIR}/test_data"                # Output path
 

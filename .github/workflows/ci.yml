@@ -1,6 +1,6 @@
 # .github/workflows/ci.yml
 
-name: Build and Test
+name: Full Building Test
 
 on:
   push:
@@ -9,8 +9,10 @@ on:
     branches: [main]
 
 jobs:
-  test:
+  build_and_test:
     runs-on: ubuntu-latest
+    env:
+      CLONE_PATH: ./external_repo
 
     steps:
     - name: Checkout repo
@@ -28,6 +30,11 @@ jobs:
       shell: bash -l {0}
       run: |
         pip install -e .
+    
+    - name: Clone external repo
+      shell: bash -l {0}
+      run: |
+        git clone https://github.com/cryoem/eman2.git $CLONE_PATH
 
     - name: Run Pytest
       shell: bash -l {0}
