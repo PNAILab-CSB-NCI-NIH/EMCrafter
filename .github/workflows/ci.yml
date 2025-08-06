@@ -42,7 +42,7 @@ jobs:
     - name: Run Pytest
       shell: bash -l {0}
       run: |
-        pytest #tests/tutorial/test_tutorial_scripts.py
+        pytest tests/tutorial/test_tutorial_scripts.py
     
     - name: Build Docs
       shell: bash -l {0}
