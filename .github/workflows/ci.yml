@@ -20,10 +20,8 @@ jobs:
       uses: conda-incubator/setup-miniconda@v3
       with:
         environment-file: environment.yml
-        auto-activate-base: false
         activate-environment: emcraft
         python-version: "3.11"
-        miniforge-variant: miniforge
         use-mamba: true
 
     - name: Install EMCrafter
