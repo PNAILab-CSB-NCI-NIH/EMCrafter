@@ -1,0 +1,37 @@
+# .github/workflows/ci.yml
+
+name: Build and Test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repo
+      uses: actions/checkout@v4
+
+    - name: Set up Miniconda
+      uses: conda-incubator/setup-miniconda@v3
+      with:
+        environment-file: environment.yml
+        auto-activate-base: false
+        activate-environment: emcraft
+        python-version: "3.11"
+        miniforge-variant: Mambaforge
+        use-mamba: true
+
+    - name: Install EMCrafter
+      shell: bash -l {0}
+      run: |
+        pip install -e .
+
+    - name: Run Pytest
+      shell: bash -l {0}
+      run: |
+        pytest #tests/tutorial/test_tutorial_scripts.py
