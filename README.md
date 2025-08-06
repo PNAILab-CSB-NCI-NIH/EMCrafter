@@ -58,7 +58,7 @@ python -m ipykernel install --user --name emcraft
 ```
 
 ### 5. Install EMAN2
-While the density map projections are handled internally, we utilize EMAN2’s pdb2mrc script to generate density maps from PDB files. For this reason:
+We utilize EMAN2’s pdb2mrc script to generate the 3D density map from a PDB file. For this reason:
 
 - Clone the EMAN2 repository:
     ```bash

@@ -15,6 +15,9 @@ jobs:
       CLONE_PATH: ./external_repo
 
     steps:
+    - name: Install system deps
+      run: sudo apt-get update && sudo apt-get install -y libopenmpi-dev build-essential
+
     - name: Checkout repo
       uses: actions/checkout@v4
 
