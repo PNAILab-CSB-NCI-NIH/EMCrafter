@@ -9,7 +9,7 @@ on:
     branches: [main]
 
 jobs:
-  build_and_test:
+  build:
     runs-on: ubuntu-latest
     env:
       CLONE_PATH: ./external_repo
@@ -34,7 +34,7 @@ jobs:
       run: |
         pip install -e .
     
-    - name: Clone external repo
+    - name: Clone External
       shell: bash -l {0}
       run: |
         git clone https://github.com/cryoem/eman2.git $CLONE_PATH
@@ -50,7 +50,7 @@ jobs:
         cd docs
         make html
 
-    #- name: Deploy Docs to GitHub Pages
+    #- name: Deploy Docs
     #  if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     #  shell: bash -l {0}
     #  run: |

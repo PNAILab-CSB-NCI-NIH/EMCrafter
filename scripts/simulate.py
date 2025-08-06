@@ -36,7 +36,11 @@ def main():
         defocus,                                # Sampled defocus
         n_cpus=n_cpus,                          # Parallelization
         batch_size=batch_size,                  # Number of simulated particles per subjob
-        output=f"{output_path}/sim_particles")  # Output directory
+        output=f"{output_path}/sim_particles",  # Output directory
+        use_eman=True                           # Use EMAN2 framework for density projection
+    )
+
+    # Save
     sim.save(f"{output_path}/sim_dataset.pkl")
 
     # Exporting:
