@@ -67,3 +67,8 @@ scripts/data/rln_project/Extract
 scripts/data/rln_project/Movies
 scripts/data/rln_project/.gui_projectdir
 scripts/data/rln_project/default_pipeline.star
+
+tests/tutorial/test_data/sim_particles
+tests/tutorial/test_data/rln_project
+tests/tutorial/test_data/*.mrc
+tests/tutorial/test_data/*.mrcs
