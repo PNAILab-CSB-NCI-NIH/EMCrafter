@@ -35,3 +35,18 @@ jobs:
       shell: bash -l {0}
       run: |
         pytest #tests/tutorial/test_tutorial_scripts.py
+    
+    - name: Build Docs
+      shell: bash -l {0}
+      run: |
+        cd docs
+        make html
+
+    - name: Deploy Docs to GitHub Pages
+      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+      shell: bash -l {0}
+      run: |
+        git config --global user.name "github-actions"
+        git config --global user.email "github-actions@github.com"
+        cd docs
+        ghp-import -n -p -f _build/html
