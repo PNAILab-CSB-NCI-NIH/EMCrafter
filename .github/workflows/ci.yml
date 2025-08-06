@@ -19,7 +19,7 @@ jobs:
   #      run: sudo apt-get update && sudo apt-get install -y libopenmpi-dev build-essential
 
   checkout_repo:
-    needs: install_system_deps
+    #needs: install_system_deps
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repo
