@@ -23,7 +23,7 @@ jobs:
         auto-activate-base: false
         activate-environment: emcraft
         python-version: "3.11"
-        miniforge-variant: Mambaforge
+        miniforge-variant: miniforge
         use-mamba: true
 
     - name: Install EMCrafter
