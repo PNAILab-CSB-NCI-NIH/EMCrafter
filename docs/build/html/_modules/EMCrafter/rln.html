@@ -1,0 +1,761 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>EMCrafter.rln &mdash; EMCrafter 1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=f2a433a1"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html">
+            
+              <img src="../../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../EMCrafter.html">EMCrafter package</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">EMCrafter</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">EMCrafter.rln</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for EMCrafter.rln</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">starfile</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">subprocess</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">collections</span><span class="w"> </span><span class="kn">import</span> <span class="n">defaultdict</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">mrcfile</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">EMCrafter.base</span><span class="w"> </span><span class="kn">import</span> <span class="n">Base</span>
+
+<span class="n">EXPORT_TYPES</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;copy&quot;</span><span class="p">,</span> <span class="s2">&quot;move&quot;</span><span class="p">,</span> <span class="s2">&quot;link&quot;</span><span class="p">]</span>
+<span class="n">EXPORT_WHICH</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;signal&quot;</span><span class="p">,</span> <span class="s2">&quot;corrupted&quot;</span><span class="p">,</span> <span class="s2">&quot;noisy&quot;</span><span class="p">]</span>
+<span class="n">DEFOCUS_NORM</span> <span class="o">=</span> <span class="mi">10_000</span>
+
+<div class="viewcode-block" id="rlnParticles">
+<a class="viewcode-back" href="../../EMCrafter.html#EMCrafter.rln.rlnParticles">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">rlnParticles</span><span class="p">(</span><span class="n">Base</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Initialize a rlnParticles object.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        file : str or None, optional</span>
+<span class="sd">            The path to a STAR file containing the particle data.</span>
+<span class="sd">            If None, an empty object is created.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">verbose</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">optics</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">base</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">file</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">file</span><span class="p">)</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_extract_params</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Extract parameters from the optics DataFrame.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">params</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;voltage&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">optics</span><span class="p">[</span><span class="s2">&quot;rlnVoltage&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="s2">&quot;rlnVoltage&quot;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">optics</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="s2">&quot;cs&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">optics</span><span class="p">[</span><span class="s2">&quot;rlnSphericalAberration&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="s2">&quot;rlnSphericalAberration&quot;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">optics</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="s2">&quot;ampcont&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">optics</span><span class="p">[</span><span class="s2">&quot;rlnAmplitudeContrast&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="s2">&quot;rlnAmplitudeContrast&quot;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">optics</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="s2">&quot;apix&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">optics</span><span class="p">[</span><span class="s2">&quot;rlnImagePixelSize&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="s2">&quot;rlnImagePixelSize&quot;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">optics</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="s2">&quot;box_size&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">optics</span><span class="p">[</span><span class="s2">&quot;rlnImageSize&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="s2">&quot;rlnImageSize&quot;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">optics</span> <span class="k">else</span> <span class="kc">None</span>
+        <span class="p">}</span>
+
+<div class="viewcode-block" id="rlnParticles.set_base_folder">
+<a class="viewcode-back" href="../../EMCrafter.html#EMCrafter.rln.rlnParticles.set_base_folder">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">set_base_folder</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">base</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Set the base folder for reading micrograph and particle files.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        base : str</span>
+<span class="sd">            The base folder containing the micrograph and particle files.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">base</span> <span class="o">=</span> <span class="n">base</span></div>
+
+
+<div class="viewcode-block" id="rlnParticles.read">
+<a class="viewcode-back" href="../../EMCrafter.html#EMCrafter.rln.rlnParticles.read">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">read</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Reads a STAR file and sets the data and optics attributes.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        file : str</span>
+<span class="sd">            The path to the STAR file containing the particle data.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">raw</span> <span class="o">=</span> <span class="n">starfile</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">file</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">raw</span><span class="p">[</span><span class="s2">&quot;particles&quot;</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">optics</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">raw</span><span class="p">[</span><span class="s2">&quot;optics&quot;</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_extract_params</span><span class="p">()</span></div>
+
+    
+<div class="viewcode-block" id="rlnParticles.load_images">
+<a class="viewcode-back" href="../../EMCrafter.html#EMCrafter.rln.rlnParticles.load_images">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">load_images</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">base</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Loads the particle images from the STAR file.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        base : str</span>
+<span class="sd">            The base folder containing the particle images.</span>
+<span class="sd">        n : int, optional</span>
+<span class="sd">            The maximum number of images to load. If None, all images are loaded.</span>
+<span class="sd">            Defaults to None.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_base_folder</span><span class="p">(</span><span class="n">base</span><span class="p">)</span>
+
+        <span class="n">img_paths</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;rlnImageName&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">to_list</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">images</span><span class="p">,</span> <span class="n">counter</span> <span class="o">=</span> <span class="p">[],</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">img_paths</span><span class="p">)):</span>
+            <span class="n">index</span><span class="p">,</span> <span class="n">path</span> <span class="o">=</span> <span class="n">img_paths</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;@&#39;</span><span class="p">)</span>
+            <span class="n">index</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">index</span><span class="p">)</span><span class="o">-</span><span class="mi">1</span>
+            <span class="n">path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">base</span><span class="p">,</span> <span class="n">path</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">path</span><span class="p">):</span> <span class="k">continue</span>
+            <span class="k">with</span> <span class="n">mrcfile</span><span class="o">.</span><span class="n">mmap</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">mrc</span><span class="p">:</span>
+                <span class="n">data</span> <span class="o">=</span> <span class="kc">None</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">mrc</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">2</span><span class="p">:</span>
+                    <span class="n">data</span> <span class="o">=</span> <span class="n">mrc</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">index</span><span class="p">]</span>
+                <span class="k">else</span><span class="p">:</span> <span class="n">data</span> <span class="o">=</span> <span class="n">mrc</span><span class="o">.</span><span class="n">data</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">images</span><span class="o">.</span><span class="n">append</span><span class="p">({</span>
+                    <span class="s2">&quot;i&quot;</span><span class="p">:</span> <span class="n">i</span><span class="p">,</span>
+                    <span class="s2">&quot;data&quot;</span><span class="p">:</span> <span class="n">data</span><span class="o">.</span><span class="n">copy</span><span class="p">(),</span>
+                    <span class="s2">&quot;index&quot;</span><span class="p">:</span> <span class="n">index</span><span class="p">,</span>
+                    <span class="s2">&quot;path&quot;</span><span class="p">:</span> <span class="n">path</span><span class="p">,</span>
+                <span class="p">})</span>
+            <span class="n">counter</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="k">if</span> <span class="n">n</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">counter</span> <span class="o">&gt;=</span> <span class="n">n</span><span class="p">:</span> <span class="k">break</span></div>
+
+
+<div class="viewcode-block" id="rlnParticles.get">
+<a class="viewcode-back" href="../../EMCrafter.html#EMCrafter.rln.rlnParticles.get">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Retrieve the particle and optics data.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        tuple</span>
+<span class="sd">            A tuple containing two pandas.DataFrames:</span>
+<span class="sd">            - The first DataFrame contains the particle data.</span>
+<span class="sd">            - The second DataFrame contains the optics data.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">optics</span></div>
+
+    
+<div class="viewcode-block" id="rlnParticles.set_data">
+<a class="viewcode-back" href="../../EMCrafter.html#EMCrafter.rln.rlnParticles.set_data">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">set_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">optics</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Set the particle and optics data.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        data : pandas.DataFrame</span>
+<span class="sd">            The particle data.</span>
+<span class="sd">        optics : pandas.DataFrame</span>
+<span class="sd">            The optics data.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">data</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">optics</span> <span class="o">=</span> <span class="n">optics</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_extract_params</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="rlnParticles.write">
+<a class="viewcode-back" href="../../EMCrafter.html#EMCrafter.rln.rlnParticles.write">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">write</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file</span><span class="p">,</span> <span class="n">att</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ids</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Writes the particle and optics data to a STAR file.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        file : str</span>
+<span class="sd">            The path to the output STAR file.</span>
+<span class="sd">        att : str, optional</span>
+<span class="sd">            The attribute to use for selecting particles. If None, all particles are used.</span>
+<span class="sd">            Defaults to None.</span>
+<span class="sd">        n : int, optional</span>
+<span class="sd">            The maximum number of particles to write. If None, all particles are written.</span>
+<span class="sd">            Defaults to None.</span>
+<span class="sd">        ids : list of int, optional</span>
+<span class="sd">            The indices of the particles to write. If None, all particles are written.</span>
+<span class="sd">            Defaults to None.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="k">if</span> <span class="n">att</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">att</span><span class="p">]</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="n">ids</span><span class="p">]</span> <span class="k">if</span> <span class="n">ids</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">data</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">iloc</span><span class="p">[:</span><span class="n">n</span><span class="p">]</span> <span class="k">if</span> <span class="n">n</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">data</span>
+        <span class="n">starfile</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+            <span class="p">{</span><span class="s1">&#39;optics&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">optics</span><span class="p">,</span> <span class="s1">&#39;particles&#39;</span><span class="p">:</span> <span class="n">data</span><span class="p">},</span>
+            <span class="n">file</span><span class="p">,</span>
+        <span class="p">)</span></div>
+</div>
+
+
+<div class="viewcode-block" id="Exporter">
+<a class="viewcode-back" href="../../EMCrafter.html#EMCrafter.rln.Exporter">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">Exporter</span><span class="p">(</span><span class="n">Base</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">output_dir</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Initialize an Exporter object.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        output_dir : str</span>
+<span class="sd">            Directory where the relion project will be exported.</span>
+<span class="sd">            If None, the export directory needs to be set later with set_output_dir.</span>
+<span class="sd">        verbose : int</span>
+<span class="sd">            Verbosity level. 0 is quiet, 1 is normal, higher values are more verbose.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">verbose</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">job_number</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">job_manager</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">job_temporary</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">micrographs</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">project_identifier</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">extract_folder</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">particles_file</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">particles_movies</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">output_dir</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">set_output_dir</span><span class="p">(</span><span class="n">output_dir</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Exporter.set_output_dir">
+<a class="viewcode-back" href="../../EMCrafter.html#EMCrafter.rln.Exporter.set_output_dir">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">set_output_dir</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">output_dir</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Set the output directory for the relion project.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        output_dir : str</span>
+<span class="sd">            Directory where the relion project will be exported.</span>
+<span class="sd">            If the directory already exists, existing files may be overwritten.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">output_dir</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">str</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Output directory must be a string!&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">output_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">output_dir</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">output_dir</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Output directory exists, existing files may be overwritten.&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">v</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Creating output directory...&quot;</span><span class="p">)</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">output_dir</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">v</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Output directory set to: </span><span class="si">{</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">relpath</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">output_dir</span><span class="p">)</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">job_manager</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">output_dir</span><span class="si">}</span><span class="s2">/default_pipeline.star&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">job_temporary</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">output_dir</span><span class="si">}</span><span class="s2">/.TMP_runfiles&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">relative_micrographs</span> <span class="o">=</span> <span class="s2">&quot;Movies&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">micrographs</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">output_dir</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">relative_micrographs</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">project_identifier</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">output_dir</span><span class="si">}</span><span class="s2">/.gui_projectdir&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">extract_folder</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">output_dir</span><span class="si">}</span><span class="s2">/Extract/job001&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">particles_file</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">extract_folder</span><span class="si">}</span><span class="s2">/particles.star&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">particles_movies</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">extract_folder</span><span class="si">}</span><span class="s2">/Movies&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">build_output</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="Exporter.build_output">
+<a class="viewcode-back" href="../../EMCrafter.html#EMCrafter.rln.Exporter.build_output">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">build_output</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Build the output directory by creating the necessary subdirectories and files.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">extract_folder</span><span class="p">):</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">extract_folder</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">particles_movies</span><span class="p">):</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">particles_movies</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">micrographs</span><span class="p">):</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">micrographs</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">job_manager</span><span class="p">):</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">job_manager</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">fp</span><span class="p">:</span>
+                <span class="n">fp</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">DEFAULT_JOB</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">project_identifier</span><span class="p">):</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">project_identifier</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">fp</span><span class="p">:</span>
+                <span class="n">fp</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">job_temporary</span><span class="p">):</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">job_temporary</span><span class="p">)</span>
+        <span class="n">files_needed</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;RELION_JOB_EXIT_SUCCESS&quot;</span><span class="p">,</span> <span class="s2">&quot;run.out&quot;</span><span class="p">,</span> <span class="s2">&quot;run.err&quot;</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">files_needed</span><span class="p">:</span>
+            <span class="n">fp</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">extract_folder</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span>
+            <span class="n">fp</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
+
+    
+<div class="viewcode-block" id="Exporter.validate_export">
+<a class="viewcode-back" href="../../EMCrafter.html#EMCrafter.rln.Exporter.validate_export">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">validate_export</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">particles</span><span class="p">,</span> <span class="n">parameters</span><span class="p">,</span> <span class="n">box_size</span><span class="p">,</span> <span class="n">export_type</span><span class="o">=</span><span class="s2">&quot;link&quot;</span><span class="p">,</span> <span class="n">export_which</span><span class="o">=</span><span class="s2">&quot;noisy&quot;</span><span class="p">,</span> <span class="n">extension</span><span class="o">=</span><span class="s2">&quot;mrcs&quot;</span><span class="p">,</span> <span class="n">shuflle</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Validate the arguments for exporting particles to a relion project.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        particles : list</span>
+<span class="sd">            The list of particles to export.</span>
+<span class="sd">        parameters : dict</span>
+<span class="sd">            The simulation parameters.</span>
+<span class="sd">        box_size : int</span>
+<span class="sd">            The box size of the particles.</span>
+<span class="sd">        export_type : str, optional</span>
+<span class="sd">            The type of export to perform. Options are &quot;copy&quot;, &quot;move&quot; or &quot;link&quot;.</span>
+<span class="sd">            Defaults to &quot;link&quot;.</span>
+<span class="sd">        export_which : str, optional</span>
+<span class="sd">            The type of particles to export. Options are &quot;noisy&quot; or &quot;dose_weighted&quot;.</span>
+<span class="sd">            Defaults to &quot;noisy&quot;.</span>
+<span class="sd">        extension : str, optional</span>
+<span class="sd">            The extension of the particle files. Defaults to &quot;mrcs&quot;.</span>
+<span class="sd">        shuflle : bool, optional</span>
+<span class="sd">            Whether to shuffle the particles before exporting. Defaults to False.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        p : numpy.ndarray</span>
+<span class="sd">            The validated and shuffled (if needed) list of particles.</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        TypeError</span>
+<span class="sd">            If any of the arguments are of the wrong type.</span>
+<span class="sd">        ValueError</span>
+<span class="sd">            If the list of particles is empty or if a required parameter is missing.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">v</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;&gt; Export: Validate arguments&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">export_type</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">EXPORT_TYPES</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Export type must be one of </span><span class="si">{</span><span class="n">EXPORT_TYPES</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">export_which</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">EXPORT_WHICH</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Export type must be one of </span><span class="si">{</span><span class="n">EXPORT_WHICH</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">particles</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Empty list of particles&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">box_size</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">int</span> <span class="ow">or</span> <span class="n">box_size</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Box size must be a positive integer&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">extension</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">str</span> <span class="ow">or</span> <span class="n">extension</span> <span class="o">==</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Extension must be a non-empty string&quot;</span><span class="p">)</span>
+        <span class="n">must_have</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;voltage&quot;</span><span class="p">,</span> <span class="s2">&quot;apix&quot;</span><span class="p">,</span> <span class="s2">&quot;cs&quot;</span><span class="p">,</span> <span class="s2">&quot;ampcont&quot;</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">mh</span> <span class="ow">in</span> <span class="n">must_have</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">mh</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">parameters</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Parameter </span><span class="si">{</span><span class="n">mh</span><span class="si">}</span><span class="s2"> is missing from parameters.&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">particles</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Empty list of particles&quot;</span><span class="p">)</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">particles</span><span class="o">.</span><span class="n">copy</span><span class="p">())</span>
+        <span class="k">if</span> <span class="n">shuflle</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">shuffle</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">p</span></div>
+
+    
+<div class="viewcode-block" id="Exporter.format_optics">
+<a class="viewcode-back" href="../../EMCrafter.html#EMCrafter.rln.Exporter.format_optics">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">format_optics</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parameters</span><span class="p">,</span> <span class="n">box_size</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Format the optics data for a relion project.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        parameters : dict</span>
+<span class="sd">            The simulation parameters.</span>
+<span class="sd">        box_size : int</span>
+<span class="sd">            The box size of the particles.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        optics : pandas.DataFrame</span>
+<span class="sd">            The formatted optics data.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">v</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;&gt; Export: Format optics&quot;</span><span class="p">)</span>
+        <span class="n">optics_data</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;rlnOpticsGroupName&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;opticsGroup1&quot;</span><span class="p">],</span>
+            <span class="s2">&quot;rlnOpticsGroup&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+            <span class="s2">&quot;rlnVoltage&quot;</span><span class="p">:</span> <span class="p">[</span><span class="n">parameters</span><span class="p">[</span><span class="s2">&quot;voltage&quot;</span><span class="p">]],</span>
+            <span class="s2">&quot;rlnSphericalAberration&quot;</span><span class="p">:</span> <span class="p">[</span><span class="n">parameters</span><span class="p">[</span><span class="s2">&quot;cs&quot;</span><span class="p">]],</span>
+            <span class="s2">&quot;rlnAmplitudeContrast&quot;</span><span class="p">:</span> <span class="p">[</span><span class="n">parameters</span><span class="p">[</span><span class="s2">&quot;ampcont&quot;</span><span class="p">]],</span>
+            <span class="s2">&quot;rlnImagePixelSize&quot;</span><span class="p">:</span> <span class="p">[</span><span class="n">parameters</span><span class="p">[</span><span class="s2">&quot;apix&quot;</span><span class="p">]],</span>
+            <span class="s2">&quot;rlnImageSize&quot;</span><span class="p">:</span> <span class="p">[</span><span class="n">box_size</span><span class="p">],</span>
+            <span class="s2">&quot;rlnImageDimensionality&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mi">2</span><span class="p">],</span>
+            <span class="s2">&quot;rlnCtfDataAreCtfPremultiplied&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+        <span class="p">}</span>
+        <span class="n">optics</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">optics_data</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">optics</span></div>
+
+    
+<div class="viewcode-block" id="Exporter.format_particles">
+<a class="viewcode-back" href="../../EMCrafter.html#EMCrafter.rln.Exporter.format_particles">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">format_particles</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">particles</span><span class="p">,</span> <span class="n">export_which</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Format the particle data for export to a relion project.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        particles : list</span>
+<span class="sd">            The list of particle dictionaries to format.</span>
+<span class="sd">        export_which : str</span>
+<span class="sd">            The key indicating which type of particle data to export.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        data : defaultdict(list)</span>
+<span class="sd">            The formatted particle data with keys from the original particle items.</span>
+<span class="sd">        n_particles : int</span>
+<span class="sd">            The number of particles.</span>
+<span class="sd">        original_keys : list</span>
+<span class="sd">            The list of keys that were retained in the formatted data.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">v</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;&gt; Export: Format particles&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Format data</span>
+        <span class="n">n_particles</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">particles</span><span class="p">)</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">list</span><span class="p">)</span>
+        <span class="n">original_keys</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;defocus&quot;</span><span class="p">,</span> <span class="n">export_which</span><span class="p">,</span> <span class="s2">&quot;index&quot;</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">particles</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="n">data</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
+            <span class="k">if</span> <span class="n">k</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">original_keys</span><span class="p">:</span>
+                <span class="k">del</span> <span class="n">data</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
+        
+        <span class="k">return</span> <span class="n">data</span><span class="p">,</span> <span class="n">n_particles</span><span class="p">,</span> <span class="n">original_keys</span></div>
+
+    
+<div class="viewcode-block" id="Exporter.create_fake_micrograph">
+<a class="viewcode-back" href="../../EMCrafter.html#EMCrafter.rln.Exporter.create_fake_micrograph">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">create_fake_micrograph</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Create an empty file at the specified path.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        path : str</span>
+<span class="sd">            The path to create the empty file.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">_</span> <span class="o">=</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">run</span><span class="p">([</span><span class="s2">&quot;touch&quot;</span><span class="p">,</span> <span class="n">path</span><span class="p">],</span> <span class="n">shell</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></div>
+
+    
+<div class="viewcode-block" id="Exporter.copy">
+<a class="viewcode-back" href="../../EMCrafter.html#EMCrafter.rln.Exporter.copy">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">source</span><span class="p">,</span> <span class="n">destination</span><span class="p">,</span> <span class="n">copy_type</span><span class="o">=</span><span class="s2">&quot;link&quot;</span><span class="p">,</span> <span class="n">force</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Copy, move, or link a file from the source to the destination.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        source : str</span>
+<span class="sd">            The path to the source file.</span>
+<span class="sd">        destination : str</span>
+<span class="sd">            The path to the destination file.</span>
+<span class="sd">        copy_type : str, optional</span>
+<span class="sd">            The type of operation to perform: &quot;link&quot; (default), &quot;move&quot;, or &quot;copy&quot;.</span>
+<span class="sd">        force : bool, optional</span>
+<span class="sd">            If True, force the operation, overwriting existing files if necessary. Default is False.</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        subprocess.CalledProcessError</span>
+<span class="sd">            If the command execution fails.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">cmd</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;link&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;ln&quot;</span><span class="p">,</span> <span class="s2">&quot;-s&quot;</span><span class="p">],</span>
+            <span class="s2">&quot;move&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;mv&quot;</span><span class="p">],</span>
+            <span class="s2">&quot;copy&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;cp&quot;</span><span class="p">]</span>
+        <span class="p">}[</span><span class="n">copy_type</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">force</span><span class="p">:</span> <span class="n">cmd</span> <span class="o">+=</span> <span class="p">[</span><span class="s2">&quot;-f&quot;</span><span class="p">]</span>
+        
+        <span class="n">command</span> <span class="o">=</span> <span class="n">cmd</span> <span class="o">+</span> <span class="p">[</span><span class="n">source</span><span class="p">,</span> <span class="n">destination</span><span class="p">]</span>
+        <span class="n">_</span> <span class="o">=</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">command</span><span class="p">,</span> <span class="n">capture_output</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">check</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">shell</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></div>
+
+    
+<div class="viewcode-block" id="Exporter.build_particles">
+<a class="viewcode-back" href="../../EMCrafter.html#EMCrafter.rln.Exporter.build_particles">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">build_particles</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">export_type</span><span class="p">,</span> <span class="n">export_which</span><span class="p">,</span> <span class="n">extension</span><span class="p">,</span> <span class="n">force</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Build physical files for the particles in the given data.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        data : pd.DataFrame</span>
+<span class="sd">            The data frame containing the particles information.</span>
+<span class="sd">        n : int</span>
+<span class="sd">            The number of particles in the data.</span>
+<span class="sd">        export_type : str</span>
+<span class="sd">            The type of file building: &quot;link&quot;, &quot;move&quot;, or &quot;copy&quot;.</span>
+<span class="sd">        export_which : str</span>
+<span class="sd">            The column name in the data frame indicating which files to export.</span>
+<span class="sd">        extension : str</span>
+<span class="sd">            The file extension to use for the exported files.</span>
+<span class="sd">        force : bool</span>
+<span class="sd">            If True, force the file creation, overwriting existing files if necessary.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        pd.DataFrame</span>
+<span class="sd">            The data frame with the locations of the exported files.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">v</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;&gt; Export: Build physical files&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Create files</span>
+        <span class="n">file_paths</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="n">export_which</span><span class="p">])</span>
+        <span class="n">path_converter</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">f</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">file_paths</span><span class="p">):</span>
+            <span class="n">label</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">f</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">mic_path</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">relative_micrographs</span><span class="si">}</span><span class="s2">/micrograph_</span><span class="si">{</span><span class="n">i</span><span class="si">:</span><span class="s2">05</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">label</span><span class="si">}</span><span class="s2">.mrc&quot;</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">create_fake_micrograph</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">output_dir</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">mic_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">img_path</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;Extract/job001/Movies/micrograph_</span><span class="si">{</span><span class="n">i</span><span class="si">:</span><span class="s2">05</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">label</span><span class="si">}</span><span class="s2">_particles.</span><span class="si">{</span><span class="n">extension</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">source</span><span class="o">=</span><span class="n">f</span><span class="p">,</span> <span class="n">destination</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">output_dir</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">img_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">copy_type</span><span class="o">=</span><span class="n">export_type</span><span class="p">,</span> <span class="n">force</span><span class="o">=</span><span class="n">force</span><span class="p">)</span>
+            <span class="n">path_converter</span><span class="p">[</span><span class="n">f</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">mic_path</span><span class="p">,</span> <span class="n">img_path</span><span class="p">)</span>
+
+        <span class="c1"># Store locations on data</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">):</span>
+            <span class="n">mic_i</span><span class="p">,</span> <span class="n">img_i</span> <span class="o">=</span> <span class="n">path_converter</span><span class="p">[</span><span class="n">data</span><span class="p">[</span><span class="n">export_which</span><span class="p">][</span><span class="n">i</span><span class="p">]]</span>
+            <span class="n">data</span><span class="p">[</span><span class="s2">&quot;rlnMicrographName&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">mic_i</span><span class="p">)</span>
+            <span class="n">data</span><span class="p">[</span><span class="s2">&quot;rlnImageName&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">img_i</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">data</span></div>
+
+
+<div class="viewcode-block" id="Exporter.set_particles_attributes">
+<a class="viewcode-back" href="../../EMCrafter.html#EMCrafter.rln.Exporter.set_particles_attributes">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">set_particles_attributes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">original_keys</span><span class="p">,</span> <span class="n">which</span><span class="p">):</span>
+        <span class="c1"># Create dataframe</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Set attributes for the particles in the given data.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        data : list of dict</span>
+<span class="sd">            The data containing the particles information.</span>
+<span class="sd">        original_keys : list</span>
+<span class="sd">            The column names in the original data.</span>
+<span class="sd">        which : str</span>
+<span class="sd">            The particle type: &quot;noisy&quot; or &quot;clean&quot;.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        pd.DataFrame</span>
+<span class="sd">            The data frame with the set attributes.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+        <span class="n">n</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">df</span><span class="p">)</span>
+
+        <span class="c1"># Set attributes</span>
+        <span class="n">df</span><span class="p">[</span><span class="s2">&quot;rlnImageName&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">x</span><span class="p">[</span><span class="s2">&quot;index&quot;</span><span class="p">]</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s1">@</span><span class="si">{</span><span class="n">x</span><span class="p">[</span><span class="s2">&quot;rlnImageName&quot;</span><span class="p">]</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">df</span><span class="p">[</span><span class="s2">&quot;rlnDefocusU&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;defocus&quot;</span><span class="p">]</span>
+        <span class="n">df</span><span class="p">[</span><span class="s2">&quot;rlnDefocusV&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;defocus&quot;</span><span class="p">]</span>
+        <span class="n">df</span><span class="p">[</span><span class="s2">&quot;rlnDefocusAngle&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.</span>
+        <span class="n">df</span><span class="p">[</span><span class="s2">&quot;rlnCtfBfactor&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.</span>
+        <span class="n">df</span><span class="p">[</span><span class="s2">&quot;rlnCtfScalefactor&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.</span>
+        <span class="n">df</span><span class="p">[</span><span class="s2">&quot;rlnPhaseShift&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.</span>
+        <span class="n">df</span><span class="p">[</span><span class="s2">&quot;rlnOpticsGroup&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="n">df</span><span class="p">[</span><span class="s2">&quot;rlnClassNumber&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">df</span><span class="p">[</span><span class="s2">&quot;rlnCoordinateX&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">10000</span><span class="p">,</span> <span class="n">n</span><span class="p">)</span>
+        <span class="n">df</span><span class="p">[</span><span class="s2">&quot;rlnCoordinateY&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span>  <span class="mi">8000</span><span class="p">,</span> <span class="n">n</span><span class="p">)</span>
+
+        <span class="n">df</span><span class="p">[</span><span class="s2">&quot;rlnAutopickFigureOfMerit&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.15</span>
+        <span class="n">df</span><span class="p">[</span><span class="s2">&quot;rlnCtfMaxResolution&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">5.00</span>
+        <span class="n">df</span><span class="p">[</span><span class="s2">&quot;rlnCtfFigureOfMerit&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.05</span>
+
+        <span class="c1"># Reorder</span>
+        <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">original_keys</span><span class="p">:</span> <span class="k">del</span> <span class="n">df</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
+        <span class="n">columns_order</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="s2">&quot;rlnImageName&quot;</span><span class="p">,</span> <span class="s2">&quot;rlnMicrographName&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;rlnOpticsGroup&quot;</span><span class="p">,</span> <span class="s2">&quot;rlnClassNumber&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;rlnCoordinateX&quot;</span><span class="p">,</span> <span class="s2">&quot;rlnCoordinateY&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;rlnDefocusU&quot;</span><span class="p">,</span> <span class="s2">&quot;rlnDefocusV&quot;</span><span class="p">,</span> <span class="s2">&quot;rlnDefocusAngle&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;rlnCtfBfactor&quot;</span><span class="p">,</span> <span class="s2">&quot;rlnCtfScalefactor&quot;</span><span class="p">,</span> <span class="s2">&quot;rlnPhaseShift&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;rlnAutopickFigureOfMerit&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;rlnCtfMaxResolution&quot;</span><span class="p">,</span> <span class="s2">&quot;rlnCtfFigureOfMerit&quot;</span><span class="p">,</span>
+        <span class="p">]</span>
+
+        <span class="k">return</span> <span class="n">df</span><span class="p">[</span><span class="n">columns_order</span><span class="p">]</span></div>
+
+    
+<div class="viewcode-block" id="Exporter.write">
+<a class="viewcode-back" href="../../EMCrafter.html#EMCrafter.rln.Exporter.write">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">write</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">particles</span><span class="p">,</span> <span class="n">optics</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Write a STAR file with the given particles and optics data.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        particles : pd.DataFrame</span>
+<span class="sd">            The particles data frame.</span>
+<span class="sd">        optics : pd.DataFrame</span>
+<span class="sd">            The optics data frame.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">v</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;&gt; Export: Compile STAR file&quot;</span><span class="p">)</span>
+        <span class="n">starfile</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+            <span class="p">{</span><span class="s1">&#39;optics&#39;</span><span class="p">:</span> <span class="n">optics</span><span class="p">,</span> <span class="s1">&#39;particles&#39;</span><span class="p">:</span> <span class="n">particles</span><span class="p">},</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">particles_file</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+    
+<div class="viewcode-block" id="Exporter.export">
+<a class="viewcode-back" href="../../EMCrafter.html#EMCrafter.rln.Exporter.export">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">export</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">particles</span><span class="p">,</span> <span class="n">parameters</span><span class="p">,</span> <span class="n">box_size</span><span class="p">,</span> <span class="n">export_type</span><span class="o">=</span><span class="s2">&quot;link&quot;</span><span class="p">,</span> <span class="n">export_which</span><span class="o">=</span><span class="s2">&quot;noisy&quot;</span><span class="p">,</span> <span class="n">extension</span><span class="o">=</span><span class="s2">&quot;mrcs&quot;</span><span class="p">,</span> <span class="n">shuflle</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">force</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Export particles to a relion project.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        particles : list</span>
+<span class="sd">            The list of particles to export.</span>
+<span class="sd">        parameters : dict</span>
+<span class="sd">            The simulation parameters.</span>
+<span class="sd">        box_size : int</span>
+<span class="sd">            The box size of the particles.</span>
+<span class="sd">        export_type : str, optional</span>
+<span class="sd">            The type of export to perform. Options are &quot;copy&quot;, &quot;move&quot; or &quot;link&quot;.</span>
+<span class="sd">            Defaults to &quot;link&quot;.</span>
+<span class="sd">        export_which : str, optional</span>
+<span class="sd">            The type of particles to export. Options are &quot;noisy&quot; or &quot;clean&quot;.</span>
+<span class="sd">            Defaults to &quot;noisy&quot;.</span>
+<span class="sd">        extension : str, optional</span>
+<span class="sd">            The extension of the particle files. Defaults to &quot;mrcs&quot;.</span>
+<span class="sd">        shuflle : bool, optional</span>
+<span class="sd">            Whether to shuffle the particles before exporting. Defaults to False.</span>
+<span class="sd">        force : bool, optional</span>
+<span class="sd">            Whether to override the existing files. Defaults to False.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        pd.DataFrame</span>
+<span class="sd">            The data frame with the set attributes.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">p_val</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">validate_export</span><span class="p">(</span><span class="n">particles</span><span class="p">,</span> <span class="n">parameters</span><span class="p">,</span> <span class="n">box_size</span><span class="p">,</span><span class="n">export_type</span><span class="p">,</span> <span class="n">export_which</span><span class="p">,</span> <span class="n">extension</span><span class="p">,</span> <span class="n">shuflle</span><span class="p">)</span>
+        <span class="n">opt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">format_optics</span><span class="p">(</span><span class="n">parameters</span><span class="p">,</span> <span class="n">box_size</span><span class="p">)</span>
+        <span class="n">data</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">keys</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">format_particles</span><span class="p">(</span><span class="n">p_val</span><span class="p">,</span> <span class="n">export_which</span><span class="p">)</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">build_particles</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">export_type</span><span class="p">,</span> <span class="n">export_which</span><span class="p">,</span> <span class="n">extension</span><span class="p">,</span> <span class="n">force</span><span class="p">)</span>
+        <span class="n">par</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">set_particles_attributes</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">keys</span><span class="p">,</span> <span class="n">export_which</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">par</span><span class="p">,</span> <span class="n">opt</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">par</span></div>
+</div>
+
+
+
+<span class="n">DEFAULT_JOB</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2"># version 30001</span>
+
+<span class="s2">data_pipeline_general</span>
+
+<span class="s2">_rlnPipeLineJobCounter                      2</span>
+<span class="s2"> </span>
+
+<span class="s2"># version 30001</span>
+
+<span class="s2">data_pipeline_processes</span>
+
+<span class="s2">loop_ </span>
+<span class="s2">_rlnPipeLineProcessName #1 </span>
+<span class="s2">_rlnPipeLineProcessAlias #2 </span>
+<span class="s2">_rlnPipeLineProcessTypeLabel #3 </span>
+<span class="s2">_rlnPipeLineProcessStatusLabel #4 </span>
+<span class="s2">Extract/job001/       None relion.extract  Succeeded </span>
+
+<span class="s2"># version 30001</span>
+
+<span class="s2">data_pipeline_nodes</span>
+
+<span class="s2">loop_ </span>
+<span class="s2">_rlnPipeLineNodeName #1 </span>
+<span class="s2">_rlnPipeLineNodeTypeLabel #2</span>
+<span class="s2">Extract/job001/particles.star ParticlesData.star.relion </span>
+
+<span class="s2"># version 30001</span>
+
+<span class="s2">data_pipeline_input_edges</span>
+
+<span class="s2">loop_ </span>
+<span class="s2">_rlnPipeLineEdgeFromNode #1 </span>
+<span class="s2">_rlnPipeLineEdgeProcess #2 </span>
+<span class="s2">AutoPick/job000/autopick.star Extract/job001/ </span>
+<span class="s2"> </span>
+
+<span class="s2"># version 30001</span>
+
+<span class="s2">data_pipeline_output_edges</span>
+
+<span class="s2">loop_ </span>
+<span class="s2">_rlnPipeLineEdgeProcess #1 </span>
+<span class="s2">_rlnPipeLineEdgeToNode #2  </span>
+<span class="s2">Extract/job001/ Extract/job001/particles.star </span>
+<span class="s2">&quot;&quot;&quot;</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Hermann Degenhardt.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
