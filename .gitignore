@@ -1,0 +1,69 @@
+# Compiled
+**/__pycache__/
+
+# Temporary
+.tmp/
+*.tmp
+*.bak
+*.swp
+
+# Environments
+.env
+.venv
+env/
+venv/
+
+# Pickle Files
+*.pkl
+*.pickle
+
+# Distribution
+.Python
+develop-eggs/
+dist/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+.ipynb_checkpoints/
+*.egg-info/
+.installed.cfg
+*.egg
+.pytest_cache
+
+# SLURM
+slurm-*
+
+# Logs
+**/EMCrafter.log
+**/.eman2log.txt
+
+# Additional
+**/.DS_Store
+
+# Development or intermediate files
+dev/
+sync.sh
+sync_full.sh
+
+TUTORIAL/run_all.ipynb
+TUTORIAL/data/sim_particles/*.mrcs
+TUTORIAL/data/rln_project/.TMP_runfiles
+TUTORIAL/data/rln_project/Extract
+TUTORIAL/data/rln_project/Movies
+TUTORIAL/data/rln_project/.gui_projectdir
+TUTORIAL/data/rln_project/default_pipeline.star
+TUTORIAL/data/maps/*.mrc
+
+scripts/data/sim_particles/*.mrcs
+scripts/data/rln_project/.TMP_runfiles
+scripts/data/rln_project/Extract
+scripts/data/rln_project/Movies
+scripts/data/rln_project/.gui_projectdir
+scripts/data/rln_project/default_pipeline.star

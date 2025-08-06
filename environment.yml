@@ -1,0 +1,39 @@
+name: emcraft
+channels:
+  - cryoem
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.11
+  - numpy=1.23.5
+  - pandas
+  - scipy
+  - matplotlib
+  - scikit-learn=1.4.1.post1
+  - mrcfile
+  - pyqt
+  - pyqt5-sip
+  - psutil=5.9.8
+  - pip=24.0
+  - setuptools=69.2.0
+  - ipykernel=6.29.3
+  - ipython=8.22.2
+  - ipywidgets=8.1.2
+  - tqdm
+  - jupyterlab
+  - eman-dev=2.99.55
+  - types-python-dateutil=2.9.0.20240316
+  - typing-extensions=4.5.0
+  - typing_utils=0.1.0
+  - pip:
+      - ipywidgets
+      - jupyterlab_widgets==3.0.10
+      - jupyterlab_pygments==0.3.0
+      - markdown
+      - markupsafe
+      - json5
+      - multiprocess
+      - sphinx
+      - sphinx-rtd-theme==3.0.2
+      - sphinx_autodoc_typehints
+      - starfile==0.5.13
