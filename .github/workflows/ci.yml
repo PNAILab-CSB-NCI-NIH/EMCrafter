@@ -8,78 +8,53 @@ on:
   pull_request:
     branches: [main]
 
-env:
-  CLONE_PATH: ./external_repo
-
 jobs:
-  #install_system_deps:
-  #  runs-on: ubuntu-latest
-  #  steps:
-  #    - name: Install system deps
-  #      run: sudo apt-get update && sudo apt-get install -y libopenmpi-dev build-essential
-
-  checkout_repo:
-    #needs: install_system_deps
+  build_and_test:
     runs-on: ubuntu-latest
+    env:
+      CLONE_PATH: ./external_repo
+
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@v4
+    #- name: Install system deps
+    #  run: sudo apt-get update && sudo apt-get install -y libopenmpi-dev build-essential
 
-  setup_conda_env:
-    needs: checkout_repo
-    runs-on: ubuntu-latest
-    steps:
-      - name: Set up Miniconda
-        uses: conda-incubator/setup-miniconda@v3
-        with:
-          environment-file: environment.yml
-          activate-environment: emcraft
-          python-version: "3.11"
-          use-mamba: true
+    - name: Checkout repo
+      uses: actions/checkout@v4
 
-      - name: Install EMCrafter
-        shell: bash -l {0}
-        run: |
-          pip install -e .
+    - name: Set up Miniconda
+      uses: conda-incubator/setup-miniconda@v3
+      with:
+        environment-file: environment.yml
+        activate-environment: emcraft
+        python-version: "3.11"
+        use-mamba: true
 
-  clone_external_repo:
-    needs: setup_conda_env
-    runs-on: ubuntu-latest
-    steps:
-      - name: Clone external repo
-        shell: bash -l {0}
-        run: |
-          git clone https://github.com/cryoem/eman2.git $CLONE_PATH
+    - name: Install EMCrafter
+      shell: bash -l {0}
+      run: |
+        pip install -e .
+    
+    - name: Clone external repo
+      shell: bash -l {0}
+      run: |
+        git clone https://github.com/cryoem/eman2.git $CLONE_PATH
 
-  run_pytest:
-    needs: clone_external_repo
-    runs-on: ubuntu-latest
-    steps:
-      - name: Run Pytest
-        shell: bash -l {0}
-        run: |
-          pytest tests/tutorial/test_tutorial_scripts.py
+    - name: Run Pytest
+      shell: bash -l {0}
+      run: |
+        pytest tests/tutorial/test_tutorial_scripts.py
+    
+    - name: Build Docs
+      shell: bash -l {0}
+      run: |
+        cd docs
+        make html
 
-  build_docs:
-    needs: run_pytest
-    runs-on: ubuntu-latest
-    steps:
-      - name: Build Docs
-        shell: bash -l {0}
-        run: |
-          cd docs
-          make html
-
-  # Uncomment to deploy docs after build
-  # deploy_docs:
-  #   needs: build_docs
-  #   runs-on: ubuntu-latest
-  #   if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-  #   steps:
-  #     - name: Deploy Docs to GitHub Pages
-  #       shell: bash -l {0}
-  #       run: |
-  #         git config --global user.name "github-actions"
-  #         git config --global user.email "github-actions@github.com"
-  #         cd docs
-  #         ghp-import -n -p -f _build/html
+    #- name: Deploy Docs to GitHub Pages
+    #  if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    #  shell: bash -l {0}
+    #  run: |
+    #    git config --global user.name "github-actions"
+    #    git config --global user.email "github-actions@github.com"
+    #    cd docs
+    #    ghp-import -n -p -f _build/html
