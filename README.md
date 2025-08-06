@@ -2,9 +2,10 @@
 
 **Realistic Cryo-EM Simulation Toolkit**
 
+[![build](https://github.com/PNAILab-CSB-NCI-NIH/EMCrafter/actions/workflows/ci.yml/badge.svg)](https://github.com/PNAILab-CSB-NCI-NIH/EMCrafter/actions/workflows/ci.yml)  
+[![Python](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/)   
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)  
-[![Python](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/)  
-[![Documentation](https://img.shields.io/badge/docs-latest-success.svg)](docs/build/html/index.html)
+[![Documentation](https://img.shields.io/badge/docs-latest-success.svg)](docs/build/html/index.html)  
 
 ---
 
