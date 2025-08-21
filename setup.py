@@ -6,7 +6,7 @@ setup(
     author="Hermann Degenhardt",
     long_description=open("README.md").read(),
     long_description_content_type="text/markdown",
-    url="https://github.com/PNAI-CSB-NCI-NIH/EMCrafter",
+    url="https://github.com/PNAILab-CSB-NCI-NIH/EMCrafter",
     packages=find_packages(where="src"),
     package_dir={"": "src"},
     classifiers=[
