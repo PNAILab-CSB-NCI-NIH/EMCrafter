@@ -58,4 +58,4 @@ jobs:
         git config --global user.name "${GITHUB_ACTOR}"
         git config --global user.email "${GITHUB_ACTOR}@users.noreply.github.com"
         cd docs
-        ghp-import -n -f -p _build/html
+        ghp-import -n -f -p build/html
