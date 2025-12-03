@@ -1,4 +1,8 @@
 # .github/workflows/ci.yml
+permissions:
+  contents: read
+  pages: write
+  id-token: write
 
 name: build
 
