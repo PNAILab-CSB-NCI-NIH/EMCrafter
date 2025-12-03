@@ -51,7 +51,7 @@ jobs:
         make html
 
     - name: Deploy Docs
-      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+      if: ${{ github.ref == 'refs/heads/main' && github.event_name == 'push' }}
       shell: bash -l {0}
       run: |
         pip install ghp-import
