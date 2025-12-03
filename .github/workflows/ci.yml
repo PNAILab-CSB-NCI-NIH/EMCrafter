@@ -50,11 +50,12 @@ jobs:
         cd docs
         make html
 
-    #- name: Deploy Docs
-    #  if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    #  shell: bash -l {0}
-    #  run: |
-    #    git config --global user.name "github-actions"
-    #    git config --global user.email "github-actions@github.com"
-    #    cd docs
-    #    ghp-import -n -p -f _build/html
+    - name: Deploy Docs
+      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+      shell: bash -l {0}
+      run: |
+        pip install ghp-import
+        git config --global user.name "${GITHUB_ACTOR}"
+        git config --global user.email "${GITHUB_ACTOR}@users.noreply.github.com"
+        cd docs
+        ghp-import -n -f -p _build/html
