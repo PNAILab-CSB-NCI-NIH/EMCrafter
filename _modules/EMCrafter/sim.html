@@ -1,0 +1,924 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>EMCrafter.sim &mdash; EMCrafter 1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=f2a433a1"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html">
+            
+              <img src="../../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../EMCrafter.html">EMCrafter package</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">EMCrafter</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">EMCrafter.sim</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for EMCrafter.sim</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">multiprocessing</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">multiprocessing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Pool</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tqdm</span><span class="w"> </span><span class="kn">import</span> <span class="n">tqdm</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">inspect</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">itertools</span><span class="w"> </span><span class="kn">import</span> <span class="n">chain</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">EMAN2</span><span class="w"> </span><span class="kn">import</span> <span class="n">EMData</span><span class="p">,</span> <span class="n">EMNumPy</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">EMCrafter.base</span><span class="w"> </span><span class="kn">import</span> <span class="n">Base</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">EMCrafter.signal</span><span class="w"> </span><span class="kn">import</span> <span class="n">SignalGenerator</span><span class="p">,</span> <span class="n">DEFOCUS_NORM</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">EMCrafter.noise</span><span class="w"> </span><span class="kn">import</span> <span class="n">NoiseGenerator</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">EMCrafter.snr</span><span class="w"> </span><span class="kn">import</span> <span class="n">SNR</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">EMCrafter.rln</span><span class="w"> </span><span class="kn">import</span> <span class="n">Exporter</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">EMCrafter.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">time_format</span>
+
+<span class="n">FONTSIZE</span> <span class="o">=</span> <span class="mi">15</span>
+<span class="n">TICKSIZE</span> <span class="o">=</span> <span class="mi">12</span>
+<span class="n">LEGSIZE</span> <span class="o">=</span> <span class="mi">12</span>
+
+<span class="n">MAX_QUICK</span> <span class="o">=</span> <span class="mi">100</span>
+<span class="n">MAX_PLOT</span> <span class="o">=</span> <span class="mi">5</span>
+
+<div class="viewcode-block" id="SimResults">
+<a class="viewcode-back" href="../../EMCrafter.html#EMCrafter.sim.SimResults">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">SimResults</span><span class="p">(</span><span class="n">Base</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rtype</span><span class="o">=</span><span class="s2">&quot;memory&quot;</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Initialize the SimResults class.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        rtype : str</span>
+<span class="sd">            Results type. Either &quot;memory&quot; (default) or &quot;disk&quot; (written).</span>
+<span class="sd">        n : int</span>
+<span class="sd">            Number of particles to simulate.</span>
+<span class="sd">        verbose : int</span>
+<span class="sd">            Verbosity level. 0 is quiet, 1 is normal, 2 is very verbose.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">verbose</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">particles</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">plot_ids</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">n</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">set_particle_number</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">rtype</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">set_type</span><span class="p">(</span><span class="n">rtype</span><span class="p">)</span>
+
+<div class="viewcode-block" id="SimResults.set_particle_number">
+<a class="viewcode-back" href="../../EMCrafter.html#EMCrafter.sim.SimResults.set_particle_number">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">set_particle_number</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Set the number of particles in the simulation.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        n : int</span>
+<span class="sd">            Number of particles to simulate.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n</span> <span class="o">=</span> <span class="n">n</span></div>
+
+    
+<div class="viewcode-block" id="SimResults.set_type">
+<a class="viewcode-back" href="../../EMCrafter.html#EMCrafter.sim.SimResults.set_type">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">set_type</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Set the type of simulation.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        t : str</span>
+<span class="sd">            Type of simulation. Either &quot;memory&quot; (default) or &quot;disk&quot; (written).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">type</span> <span class="o">=</span> <span class="n">t</span></div>
+
+
+<div class="viewcode-block" id="SimResults.set_parameters">
+<a class="viewcode-back" href="../../EMCrafter.html#EMCrafter.sim.SimResults.set_parameters">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">set_parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parameters</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Set the parameters of the simulation.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        parameters : dict</span>
+<span class="sd">            Simulation parameters.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span> <span class="o">=</span> <span class="n">parameters</span></div>
+
+    
+<div class="viewcode-block" id="SimResults.set_box_size">
+<a class="viewcode-back" href="../../EMCrafter.html#EMCrafter.sim.SimResults.set_box_size">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">set_box_size</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">box_size</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Set the box size of the simulation.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        box_size : int</span>
+<span class="sd">            Box size of the particles.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">box_size</span> <span class="o">=</span> <span class="n">box_size</span></div>
+
+    
+<div class="viewcode-block" id="SimResults.merge">
+<a class="viewcode-back" href="../../EMCrafter.html#EMCrafter.sim.SimResults.merge">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">merge</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">results</span><span class="o">=</span><span class="p">[]):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Merge results from multiple simulations into one.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        results : list</span>
+<span class="sd">            List of files to load and merge.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        SimResults</span>
+<span class="sd">            The merged simulations.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Instantiate simulations</span>
+        <span class="n">sims</span><span class="p">,</span> <span class="n">particles</span>  <span class="o">=</span> <span class="p">[],</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">results</span><span class="p">)):</span> 
+            <span class="n">sim_i</span> <span class="o">=</span> <span class="n">SimResults</span><span class="p">()</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">results</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+            <span class="n">sims</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">sim_i</span><span class="p">)</span>
+            <span class="n">particles</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">sim_i</span><span class="o">.</span><span class="n">particles</span><span class="o">.</span><span class="n">copy</span><span class="p">())</span>
+
+        <span class="c1"># Merge</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">particles</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">chain</span><span class="o">.</span><span class="n">from_iterable</span><span class="p">(</span><span class="n">particles</span><span class="p">))</span>
+
+        <span class="c1"># Set attributes</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_particle_number</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">particles</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_parameters</span><span class="p">(</span><span class="n">sims</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">parameters</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_box_size</span><span class="p">(</span><span class="n">sims</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">box_size</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+    
+<div class="viewcode-block" id="SimResults.append">
+<a class="viewcode-back" href="../../EMCrafter.html#EMCrafter.sim.SimResults.append">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">append</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+               <span class="n">angle</span><span class="p">,</span> <span class="n">defocus</span><span class="p">,</span> <span class="n">snr</span><span class="p">,</span>
+               <span class="n">signal</span><span class="p">,</span> <span class="n">corrupted</span><span class="p">,</span>
+               <span class="n">noisy</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Append a particle to the results.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        angle : float</span>
+<span class="sd">            The angle of the particle.</span>
+<span class="sd">        defocus : float</span>
+<span class="sd">            The defocus of the particle.</span>
+<span class="sd">        snr : float</span>
+<span class="sd">            The SNR of the particle.</span>
+<span class="sd">        signal : numpy.ndarray</span>
+<span class="sd">            The clean signal of the particle.</span>
+<span class="sd">        corrupted : numpy.ndarray</span>
+<span class="sd">            The corrupted signal of the particle.</span>
+<span class="sd">        noisy : numpy.ndarray</span>
+<span class="sd">            The noisy signal of the particle.</span>
+<span class="sd">        index : int, optional</span>
+<span class="sd">            The index of the particle. Defaults to None.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">particles</span><span class="o">.</span><span class="n">append</span><span class="p">({</span>
+            <span class="s2">&quot;angle&quot;</span><span class="p">:</span> <span class="n">angle</span><span class="p">,</span>
+            <span class="s2">&quot;defocus&quot;</span><span class="p">:</span> <span class="n">defocus</span><span class="p">,</span>
+            <span class="s2">&quot;snr&quot;</span><span class="p">:</span> <span class="n">snr</span><span class="p">,</span>
+            <span class="s2">&quot;signal&quot;</span><span class="p">:</span> <span class="n">signal</span><span class="p">,</span>
+            <span class="s2">&quot;corrupted&quot;</span><span class="p">:</span> <span class="n">corrupted</span><span class="p">,</span>
+            <span class="s2">&quot;noisy&quot;</span><span class="p">:</span> <span class="n">noisy</span><span class="p">,</span>
+            <span class="s2">&quot;index&quot;</span><span class="p">:</span> <span class="n">index</span>
+        <span class="p">})</span></div>
+
+    
+<div class="viewcode-block" id="SimResults.append_array">
+<a class="viewcode-back" href="../../EMCrafter.html#EMCrafter.sim.SimResults.append_array">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">append_array</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                    <span class="n">angles</span><span class="p">,</span> <span class="n">defocus</span><span class="p">,</span> <span class="n">snr</span><span class="p">,</span>
+                    <span class="n">signal</span><span class="p">,</span> <span class="n">corrupted</span><span class="p">,</span>
+                    <span class="n">noisy</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Append a set of particles to the results.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        angles : list of float</span>
+<span class="sd">            The angles of the particles.</span>
+<span class="sd">        defocus : list of float</span>
+<span class="sd">            The defocus of the particles.</span>
+<span class="sd">        snr : list of float</span>
+<span class="sd">            The SNR of the particles.</span>
+<span class="sd">        signal : list of numpy.ndarray</span>
+<span class="sd">            The clean signal of the particles.</span>
+<span class="sd">        corrupted : list of numpy.ndarray</span>
+<span class="sd">            The corrupted signal of the particles.</span>
+<span class="sd">        noisy : list of numpy.ndarray</span>
+<span class="sd">            The noisy signal of the particles.</span>
+<span class="sd">        index : list of int, optional</span>
+<span class="sd">            The index of the particles. Defaults to None.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">index</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">index</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">n</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">type</span> <span class="o">=</span> <span class="s2">&quot;memory&quot;</span>
+        <span class="k">else</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">type</span> <span class="o">=</span> <span class="s2">&quot;disk&quot;</span>
+        <span class="k">if</span> <span class="n">angles</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span> <span class="n">angles</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">n</span>
+        <span class="k">if</span> <span class="n">defocus</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span> <span class="n">defocus</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">n</span>
+        <span class="k">if</span> <span class="n">snr</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span> <span class="n">snr</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">n</span>
+        <span class="k">if</span> <span class="n">signal</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span> <span class="n">signal</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">n</span>
+        <span class="k">if</span> <span class="n">corrupted</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span> <span class="n">corrupted</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">n</span>
+        <span class="k">if</span> <span class="n">noisy</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span> <span class="n">noisy</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">n</span>
+        
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="n">angles</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">defocus</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">snr</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
+                <span class="n">signal</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">corrupted</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
+                <span class="n">noisy</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">index</span><span class="p">[</span><span class="n">i</span><span class="p">])</span></div>
+
+    
+<div class="viewcode-block" id="SimResults.plot">
+<a class="viewcode-back" href="../../EMCrafter.html#EMCrafter.sim.SimResults.plot">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">plot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s2">&quot;gray&quot;</span><span class="p">,</span> <span class="n">ids</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">show</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Plot the particles in the simulation.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        cmap : str, optional</span>
+<span class="sd">            The colormap to use for the images. Defaults to &quot;gray&quot;.</span>
+<span class="sd">        ids : list of int, optional</span>
+<span class="sd">            The ids of the particles to plot. Defaults to None.</span>
+<span class="sd">        show : bool, optional</span>
+<span class="sd">            If True, displays the plot. If False, the figure is closed. Defaults to True.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        fig : matplotlib.figure.Figure</span>
+<span class="sd">            The figure object containing the plot.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">ids</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">set_plot_ids</span><span class="p">(</span><span class="n">ids</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">plot_ids</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">set_random_ids</span><span class="p">()</span>
+
+        <span class="n">p</span><span class="p">,</span> <span class="n">ids</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">particles</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">plot_ids</span>
+        <span class="n">rows</span><span class="p">,</span> <span class="n">columns</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="nb">max</span><span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">ids</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">p</span><span class="p">[</span><span class="n">ids</span><span class="p">[</span><span class="mi">0</span><span class="p">]][</span><span class="s2">&quot;signal&quot;</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span> <span class="n">rows</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="k">if</span> <span class="n">p</span><span class="p">[</span><span class="n">ids</span><span class="p">[</span><span class="mi">0</span><span class="p">]][</span><span class="s2">&quot;corrupted&quot;</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span> <span class="n">rows</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="k">if</span> <span class="n">p</span><span class="p">[</span><span class="n">ids</span><span class="p">[</span><span class="mi">0</span><span class="p">]][</span><span class="s2">&quot;noisy&quot;</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span> <span class="n">rows</span> <span class="o">+=</span> <span class="mi">1</span>
+        
+        <span class="n">fig</span><span class="p">,</span> <span class="n">axs</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="n">rows</span><span class="p">,</span> <span class="n">columns</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="n">columns</span><span class="p">,</span> <span class="mf">1.5</span><span class="o">*</span><span class="n">rows</span><span class="p">))</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">ids</span><span class="p">)):</span>
+            <span class="n">k</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="n">index</span> <span class="o">=</span> <span class="n">p</span><span class="p">[</span><span class="n">ids</span><span class="p">[</span><span class="n">i</span><span class="p">]][</span><span class="s2">&quot;index&quot;</span><span class="p">]</span>
+            <span class="n">signal</span> <span class="o">=</span> <span class="n">p</span><span class="p">[</span><span class="n">ids</span><span class="p">[</span><span class="n">i</span><span class="p">]][</span><span class="s2">&quot;signal&quot;</span><span class="p">]</span>
+            <span class="n">corrupted</span> <span class="o">=</span> <span class="n">p</span><span class="p">[</span><span class="n">ids</span><span class="p">[</span><span class="n">i</span><span class="p">]][</span><span class="s2">&quot;corrupted&quot;</span><span class="p">]</span>
+            <span class="n">noisy</span> <span class="o">=</span> <span class="n">p</span><span class="p">[</span><span class="n">ids</span><span class="p">[</span><span class="n">i</span><span class="p">]][</span><span class="s2">&quot;noisy&quot;</span><span class="p">]</span>
+            
+            <span class="k">if</span> <span class="n">signal</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">signal</span><span class="p">)</span> <span class="o">==</span> <span class="nb">str</span><span class="p">:</span>
+                    <span class="n">signal</span> <span class="o">=</span> <span class="n">EMNumPy</span><span class="o">.</span><span class="n">em2numpy</span><span class="p">(</span><span class="n">EMData</span><span class="p">(</span><span class="n">signal</span><span class="p">,</span> <span class="n">index</span><span class="p">))</span>
+                <span class="n">fbox</span> <span class="o">=</span> <span class="n">signal</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">/</span><span class="mi">20</span>
+                <span class="n">axi</span> <span class="o">=</span> <span class="n">axs</span><span class="p">[</span><span class="n">k</span><span class="p">][</span><span class="n">i</span><span class="p">]</span> <span class="k">if</span> <span class="n">rows</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="k">else</span> <span class="n">axs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+                <span class="n">ci</span> <span class="o">=</span> <span class="n">axi</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">signal</span><span class="p">,</span> <span class="n">cmap</span><span class="p">)</span>
+                <span class="n">cbar_i</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">colorbar</span><span class="p">(</span><span class="n">ci</span><span class="p">,</span> <span class="n">pad</span><span class="o">=</span><span class="mf">0.01</span><span class="p">)</span>
+                <span class="n">cbar_i</span><span class="o">.</span><span class="n">set_label</span><span class="p">(</span><span class="s1">&#39;Intensity (a.u.)&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+                <span class="n">plt</span><span class="o">.</span><span class="n">yticks</span><span class="p">([]);</span> <span class="n">plt</span><span class="o">.</span><span class="n">xticks</span><span class="p">([])</span>
+                <span class="n">axi</span><span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s1">&#39;off&#39;</span><span class="p">)</span>
+                <span class="n">axi</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="n">fbox</span><span class="p">,</span> <span class="mi">2</span><span class="o">*</span><span class="n">fbox</span><span class="p">,</span> <span class="s1">&#39;Clean Signal&#39;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;white&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span> <span class="n">fontweight</span><span class="o">=</span><span class="s1">&#39;bold&#39;</span><span class="p">)</span>
+                <span class="n">axi</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="n">fbox</span><span class="p">,</span> <span class="mi">19</span><span class="o">*</span><span class="n">fbox</span><span class="p">,</span> <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="nb">tuple</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="n">ids</span><span class="p">[</span><span class="n">i</span><span class="p">]][</span><span class="s2">&quot;angle&quot;</span><span class="p">])</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">))</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;white&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span> <span class="n">fontweight</span><span class="o">=</span><span class="s1">&#39;bold&#39;</span><span class="p">)</span>
+                <span class="n">k</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="k">if</span> <span class="n">corrupted</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">corrupted</span><span class="p">)</span> <span class="o">==</span> <span class="nb">str</span><span class="p">:</span>
+                    <span class="n">corrupted</span> <span class="o">=</span> <span class="n">EMNumPy</span><span class="o">.</span><span class="n">em2numpy</span><span class="p">(</span><span class="n">EMData</span><span class="p">(</span><span class="n">corrupted</span><span class="p">,</span> <span class="n">index</span><span class="p">))</span>
+                <span class="n">fbox</span> <span class="o">=</span> <span class="n">corrupted</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">/</span><span class="mi">20</span>
+                <span class="n">axi</span> <span class="o">=</span> <span class="n">axs</span><span class="p">[</span><span class="n">k</span><span class="p">][</span><span class="n">i</span><span class="p">]</span> <span class="k">if</span> <span class="n">rows</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="k">else</span> <span class="n">axs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+                <span class="n">ci</span> <span class="o">=</span> <span class="n">axi</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">corrupted</span><span class="p">,</span> <span class="n">cmap</span><span class="p">)</span>
+                <span class="n">cbar_i</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">colorbar</span><span class="p">(</span><span class="n">ci</span><span class="p">,</span> <span class="n">pad</span><span class="o">=</span><span class="mf">0.01</span><span class="p">)</span>
+                <span class="n">cbar_i</span><span class="o">.</span><span class="n">set_label</span><span class="p">(</span><span class="s1">&#39;Intensity (a.u.)&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+                <span class="n">plt</span><span class="o">.</span><span class="n">yticks</span><span class="p">([]);</span> <span class="n">plt</span><span class="o">.</span><span class="n">xticks</span><span class="p">([])</span>
+                <span class="n">axi</span><span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s1">&#39;off&#39;</span><span class="p">)</span>
+                <span class="n">axi</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="n">fbox</span><span class="p">,</span> <span class="mi">2</span><span class="o">*</span><span class="n">fbox</span><span class="p">,</span> <span class="s1">&#39;CTF Corrupted&#39;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;white&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span> <span class="n">fontweight</span><span class="o">=</span><span class="s1">&#39;bold&#39;</span><span class="p">)</span>
+                <span class="n">axi</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="n">fbox</span><span class="p">,</span> <span class="mi">19</span><span class="o">*</span><span class="n">fbox</span><span class="p">,</span> <span class="sa">rf</span><span class="s1">&#39;Defocus: </span><span class="si">{</span><span class="n">p</span><span class="p">[</span><span class="n">ids</span><span class="p">[</span><span class="n">i</span><span class="p">]][</span><span class="s2">&quot;defocus&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span><span class="si">}</span><span class="s1"> $\AA$&#39;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;white&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span> <span class="n">fontweight</span><span class="o">=</span><span class="s1">&#39;bold&#39;</span><span class="p">)</span>
+                <span class="n">k</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="k">if</span> <span class="n">noisy</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">noisy</span><span class="p">)</span> <span class="o">==</span> <span class="nb">str</span><span class="p">:</span>
+                    <span class="n">noisy</span> <span class="o">=</span> <span class="n">EMNumPy</span><span class="o">.</span><span class="n">em2numpy</span><span class="p">(</span><span class="n">EMData</span><span class="p">(</span><span class="n">noisy</span><span class="p">,</span> <span class="n">index</span><span class="p">))</span>
+                <span class="n">fbox</span> <span class="o">=</span> <span class="n">noisy</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">/</span><span class="mi">20</span>
+                <span class="n">axi</span> <span class="o">=</span> <span class="n">axs</span><span class="p">[</span><span class="n">k</span><span class="p">][</span><span class="n">i</span><span class="p">]</span> <span class="k">if</span> <span class="n">rows</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="k">else</span> <span class="n">axs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+                <span class="n">ci</span> <span class="o">=</span> <span class="n">axi</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">noisy</span><span class="p">,</span> <span class="n">cmap</span><span class="p">)</span>
+                <span class="n">cbar_i</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">colorbar</span><span class="p">(</span><span class="n">ci</span><span class="p">,</span> <span class="n">pad</span><span class="o">=</span><span class="mf">0.01</span><span class="p">)</span>
+                <span class="n">cbar_i</span><span class="o">.</span><span class="n">set_label</span><span class="p">(</span><span class="s1">&#39;Intensity (a.u.)&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+                <span class="n">plt</span><span class="o">.</span><span class="n">yticks</span><span class="p">([]);</span> <span class="n">plt</span><span class="o">.</span><span class="n">xticks</span><span class="p">([])</span>
+                <span class="n">axi</span><span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s1">&#39;off&#39;</span><span class="p">)</span>
+                <span class="n">axi</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="n">fbox</span><span class="p">,</span> <span class="mi">2</span><span class="o">*</span><span class="n">fbox</span><span class="p">,</span> <span class="s1">&#39;Noisy Image&#39;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;white&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span> <span class="n">fontweight</span><span class="o">=</span><span class="s1">&#39;bold&#39;</span><span class="p">)</span>
+                <span class="n">axi</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="n">fbox</span><span class="p">,</span> <span class="mi">19</span><span class="o">*</span><span class="n">fbox</span><span class="p">,</span> <span class="sa">f</span><span class="s1">&#39;SNR: </span><span class="si">{</span><span class="n">p</span><span class="p">[</span><span class="n">ids</span><span class="p">[</span><span class="n">i</span><span class="p">]][</span><span class="s2">&quot;snr&quot;</span><span class="p">]</span><span class="si">:</span><span class="s1">.5f</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;white&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span> <span class="n">fontweight</span><span class="o">=</span><span class="s1">&#39;bold&#39;</span><span class="p">)</span>
+                <span class="n">k</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">show</span><span class="p">:</span> <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span> <span class="n">plt</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">fig</span></div>
+
+        
+<div class="viewcode-block" id="SimResults.set_plot_ids">
+<a class="viewcode-back" href="../../EMCrafter.html#EMCrafter.sim.SimResults.set_plot_ids">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">set_plot_ids</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ids</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Set the particle IDs to be plotted in the show method.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        ids : list or array</span>
+<span class="sd">            The IDs of the particles to be plotted. If the length is larger than MAX_PLOT,</span>
+<span class="sd">            only the first MAX_PLOT IDs will be used.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        None</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">plot_ids</span> <span class="o">=</span> <span class="n">ids</span><span class="p">[:</span><span class="n">MAX_PLOT</span><span class="p">]</span></div>
+
+    
+<div class="viewcode-block" id="SimResults.set_random_ids">
+<a class="viewcode-back" href="../../EMCrafter.html#EMCrafter.sim.SimResults.set_random_ids">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">set_random_ids</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Set the particle IDs to be plotted in the show method to a random subset.</span>
+<span class="sd">        The length of the subset is MAX_PLOT. If the length of the particles is</span>
+<span class="sd">        smaller than MAX_PLOT, all particles will be used.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">n</span> <span class="o">&lt;=</span> <span class="n">MAX_PLOT</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">plot_ids</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n</span><span class="p">)]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">plot_ids</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n</span><span class="p">),</span> <span class="n">size</span><span class="o">=</span><span class="n">MAX_PLOT</span><span class="p">,</span> <span class="n">replace</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></div>
+
+    
+<div class="viewcode-block" id="SimResults.export_particles">
+<a class="viewcode-back" href="../../EMCrafter.html#EMCrafter.sim.SimResults.export_particles">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">export_particles</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">output</span><span class="p">,</span> <span class="n">export_type</span><span class="o">=</span><span class="s2">&quot;link&quot;</span><span class="p">,</span> <span class="n">export_which</span><span class="o">=</span><span class="s2">&quot;noisy&quot;</span><span class="p">,</span> <span class="n">extension</span><span class="o">=</span><span class="s2">&quot;mrcs&quot;</span><span class="p">,</span> <span class="n">shuflle</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">force</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Export the particles to a Relion project.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        output : str</span>
+<span class="sd">            Output folder containing the relion project structure.</span>
+<span class="sd">        export_type : str, optional</span>
+<span class="sd">            The type of file building. Needs to be one of [&quot;copy&quot;, &quot;move&quot;, &quot;link&quot;].</span>
+<span class="sd">            Defaults to &quot;link&quot;.</span>
+<span class="sd">        export_which : str, optional</span>
+<span class="sd">            The type of particles to export. Needs to be one of [&quot;clean&quot;, &quot;corrupted&quot;, &quot;noisy&quot;].</span>
+<span class="sd">            Defaults to &quot;noisy&quot;.</span>
+<span class="sd">        extension : str, optional</span>
+<span class="sd">            The extension of the particle files. Defaults to &quot;mrcs&quot;.</span>
+<span class="sd">        shuflle : bool, optional</span>
+<span class="sd">            Whether to shuffle the particles before exporting. Defaults to False.</span>
+<span class="sd">        force : bool, optional</span>
+<span class="sd">            If True, force the file creation, overwriting existing files if necessary.</span>
+<span class="sd">            Defaults to False.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        pd.DataFrame</span>
+<span class="sd">            The data frame related to the star file built.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">v</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Starting &#39;</span><span class="si">{</span><span class="n">inspect</span><span class="o">.</span><span class="n">stack</span><span class="p">()[</span><span class="mi">0</span><span class="p">][</span><span class="mi">3</span><span class="p">]</span><span class="si">}</span><span class="s2">&#39;...&quot;</span><span class="p">)</span>
+        <span class="n">start_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">rln</span> <span class="o">=</span> <span class="n">Exporter</span><span class="p">(</span><span class="n">verbose</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">v</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rln</span><span class="o">.</span><span class="n">set_output_dir</span><span class="p">(</span><span class="n">output</span><span class="p">)</span>
+        <span class="n">df</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">rln</span><span class="o">.</span><span class="n">export</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">particles</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">box_size</span><span class="p">,</span>
+            <span class="n">export_type</span><span class="p">,</span> <span class="n">export_which</span><span class="p">,</span> <span class="n">extension</span><span class="p">,</span> <span class="n">shuflle</span><span class="p">,</span> <span class="n">force</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">v</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Finished &#39;</span><span class="si">{</span><span class="n">inspect</span><span class="o">.</span><span class="n">stack</span><span class="p">()[</span><span class="mi">0</span><span class="p">][</span><span class="mi">3</span><span class="p">]</span><span class="si">}</span><span class="s2">&#39; in </span><span class="si">{</span><span class="n">time_format</span><span class="p">(</span><span class="n">start_time</span><span class="p">,</span><span class="w"> </span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">())</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">df</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="ParticleSimulator">
+<a class="viewcode-back" href="../../EMCrafter.html#EMCrafter.sim.ParticleSimulator">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">ParticleSimulator</span><span class="p">(</span><span class="n">Base</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">n_cpus</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Initialize the ParticleSimulator class.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        verbose : int, optional</span>
+<span class="sd">            Verbosity level. Defaults to 1.</span>
+<span class="sd">        n_cpus : int, optional</span>
+<span class="sd">            Number of CPUs to be used. Defaults to 1.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        None</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">verbose</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">signal</span> <span class="o">=</span> <span class="n">SignalGenerator</span><span class="p">(</span><span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">noise</span> <span class="o">=</span> <span class="n">NoiseGenerator</span><span class="p">(</span><span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">snr</span> <span class="o">=</span> <span class="n">SNR</span><span class="p">(</span><span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_cpus</span><span class="p">(</span><span class="n">n_cpus</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sim</span> <span class="o">=</span> <span class="kc">None</span>
+    
+<div class="viewcode-block" id="ParticleSimulator.set_cpus">
+<a class="viewcode-back" href="../../EMCrafter.html#EMCrafter.sim.ParticleSimulator.set_cpus">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">set_cpus</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n_cpus</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Set the number of CPUs to be used.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        n_cpus : int</span>
+<span class="sd">            The number of CPUs to be used. If less than 1, 1 CPU is used. If more</span>
+<span class="sd">            than the total number of cores available, the total number of cores</span>
+<span class="sd">            minus one is used.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        None</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">total_cores</span> <span class="o">=</span> <span class="n">multiprocessing</span><span class="o">.</span><span class="n">cpu_count</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">n_cpus</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">cores_to_use</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">cores_to_use</span> <span class="o">=</span> <span class="n">n_cpus</span> <span class="k">if</span> <span class="n">n_cpus</span> <span class="o">&lt;</span> <span class="n">total_cores</span> <span class="k">else</span> <span class="n">total_cores</span><span class="o">-</span><span class="mi">1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cpus</span> <span class="o">=</span> <span class="n">cores_to_use</span></div>
+
+
+<div class="viewcode-block" id="ParticleSimulator.normalize">
+<a class="viewcode-back" href="../../EMCrafter.html#EMCrafter.sim.ParticleSimulator.normalize">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">normalize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">p</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Normalize the input array to zero mean and unit variance.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        p : ndarray</span>
+<span class="sd">            The input array to normalize. Can be 2D or 3D.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        ndarray</span>
+<span class="sd">            The normalized array with zero mean and unit variance.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="n">mean</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">std</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="k">return</span> <span class="p">(</span><span class="n">p</span> <span class="o">-</span> <span class="n">mean</span><span class="p">)</span> <span class="o">/</span> <span class="n">std</span>
+        <span class="k">else</span><span class="p">:</span> <span class="k">return</span> <span class="p">(</span><span class="n">p</span> <span class="o">-</span> <span class="n">p</span><span class="o">.</span><span class="n">mean</span><span class="p">())</span><span class="o">/</span><span class="n">p</span><span class="o">.</span><span class="n">std</span><span class="p">()</span></div>
+
+    
+<div class="viewcode-block" id="ParticleSimulator.simulate">
+<a class="viewcode-back" href="../../EMCrafter.html#EMCrafter.sim.ParticleSimulator.simulate">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">simulate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">alt</span><span class="p">,</span> <span class="n">az</span><span class="p">,</span> <span class="n">phi</span><span class="p">,</span> <span class="n">defocus</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Simulate a particle given Euler angles and a defocus value.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        alt : float</span>
+<span class="sd">            The altitude angle in degrees.</span>
+<span class="sd">        az : float</span>
+<span class="sd">            The azimuth angle in degrees.</span>
+<span class="sd">        phi : float</span>
+<span class="sd">            The in-plane rotation angle in degrees.</span>
+<span class="sd">        defocus : float</span>
+<span class="sd">            The defocus value in Angstroms.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        tuple</span>
+<span class="sd">            A tuple containing the simulated particle and the mask.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">sgen</span><span class="p">,</span> <span class="n">ngen</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">signal</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">noise</span>
+        <span class="n">volume</span> <span class="o">=</span> <span class="n">sgen</span><span class="o">.</span><span class="n">volume</span>
+
+        <span class="n">signal</span><span class="p">,</span> <span class="n">pmask</span> <span class="o">=</span> <span class="n">sgen</span><span class="o">.</span><span class="n">simulate</span><span class="p">(</span><span class="n">volume</span><span class="p">,</span> <span class="n">alt</span><span class="p">,</span> <span class="n">az</span><span class="p">,</span> <span class="n">phi</span><span class="p">,</span> <span class="n">defocus</span><span class="p">,</span> <span class="n">store</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="n">background</span> <span class="o">=</span> <span class="n">ngen</span><span class="o">.</span><span class="n">simulate</span><span class="p">(</span><span class="n">signal</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        
+        <span class="n">sim</span> <span class="o">=</span> <span class="n">signal</span> <span class="o">+</span> <span class="n">background</span><span class="o">/</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">snr</span><span class="o">.</span><span class="n">value</span><span class="p">(</span><span class="n">defocus</span><span class="o">/</span><span class="n">DEFOCUS_NORM</span><span class="p">))</span>
+        <span class="n">sim</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">normalize</span><span class="p">(</span><span class="n">sim</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">sim</span><span class="p">,</span> <span class="n">pmask</span></div>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_simulate_quick</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">angles</span><span class="p">,</span> <span class="n">defocus</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Simulate a set of particles using the quick mode.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        angles : array</span>
+<span class="sd">            A 2D array of shape (n_particles, 3) containing the Euler angles.</span>
+<span class="sd">        defocus : array</span>
+<span class="sd">            A 1D array of shape (n_particles,) containing the defocus values.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        SimResults</span>
+<span class="sd">            A SimResults object containing the simulated particles.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">n_particles</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">angles</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">n_particles</span> <span class="o">&gt;</span> <span class="n">MAX_QUICK</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;Quick mode not supported for more than 10 particles, simulating only 10 particles.&quot;</span><span class="p">)</span>
+        <span class="n">sgen</span><span class="p">,</span> <span class="n">ngen</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">signal</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">noise</span>
+        <span class="n">volume</span> <span class="o">=</span> <span class="n">sgen</span><span class="o">.</span><span class="n">volume</span>
+        
+        <span class="n">projection</span><span class="p">,</span> <span class="n">corrupted</span><span class="p">,</span> <span class="n">normalized</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[],</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">v</span><span class="p">:</span>
+            <span class="n">pbar</span> <span class="o">=</span> <span class="n">tqdm</span><span class="p">(</span><span class="n">total</span><span class="o">=</span><span class="n">n_particles</span><span class="p">,</span> <span class="n">desc</span><span class="o">=</span><span class="s2">&quot;&gt; Sim. Signal&quot;</span><span class="p">,</span> <span class="n">ascii</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="s2">&quot; image&quot;</span><span class="p">,</span> <span class="n">unit_scale</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">ncols</span><span class="o">=</span><span class="mi">80</span><span class="p">,</span> <span class="n">file</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">stdout</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_particles</span><span class="p">):</span>
+            <span class="n">alt</span><span class="p">,</span> <span class="n">az</span><span class="p">,</span> <span class="n">phi</span> <span class="o">=</span> <span class="n">angles</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="n">_</span> <span class="o">=</span> <span class="n">sgen</span><span class="o">.</span><span class="n">simulate</span><span class="p">(</span><span class="n">volume</span><span class="p">,</span> <span class="n">alt</span><span class="p">,</span> <span class="n">az</span><span class="p">,</span> <span class="n">phi</span><span class="p">,</span> <span class="n">defocus</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">store</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">projection</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">sgen</span><span class="o">.</span><span class="n">signal_clean</span><span class="o">.</span><span class="n">copy</span><span class="p">())</span>
+            <span class="n">corrupted</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">sgen</span><span class="o">.</span><span class="n">signal_corrupted</span><span class="o">.</span><span class="n">copy</span><span class="p">())</span>
+            <span class="n">normalized</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">sgen</span><span class="o">.</span><span class="n">signal_norm</span><span class="o">.</span><span class="n">copy</span><span class="p">())</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">v</span><span class="p">:</span> <span class="n">pbar</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+        
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">v</span><span class="p">:</span>
+            <span class="n">pbar</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;&gt; Sim. Noise (vectorized)...&quot;</span><span class="p">)</span>
+        <span class="n">background</span> <span class="o">=</span> <span class="n">ngen</span><span class="o">.</span><span class="n">simulate</span><span class="p">(</span><span class="n">sgen</span><span class="o">.</span><span class="n">image_shape</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="n">n_particles</span><span class="p">)</span>
+        
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">v</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;&gt; Adding noise (vectorized)...&quot;</span><span class="p">)</span>
+        <span class="n">signal</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">normalized</span><span class="p">)</span>
+        <span class="n">sqrt_snr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">snr</span><span class="o">.</span><span class="n">value</span><span class="p">(</span><span class="n">defocus</span><span class="o">/</span><span class="n">DEFOCUS_NORM</span><span class="p">))</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">snr</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">&quot;flat&quot;</span><span class="p">:</span>
+            <span class="n">sqrt_snr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">sqrt_snr</span><span class="p">]</span><span class="o">*</span><span class="n">n_particles</span><span class="p">)</span>
+        <span class="n">noisy</span> <span class="o">=</span> <span class="n">signal</span> <span class="o">+</span> <span class="n">background</span><span class="o">/</span><span class="p">(</span><span class="n">sqrt_snr</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">])</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">v</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;&gt; Normalizing (vectorized)...&quot;</span><span class="p">)</span>
+        <span class="n">noisy</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">normalize</span><span class="p">(</span><span class="n">noisy</span><span class="p">)</span>
+
+        <span class="n">sim</span> <span class="o">=</span> <span class="n">SimResults</span><span class="p">(</span><span class="n">rtype</span><span class="o">=</span><span class="s2">&quot;memory&quot;</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="n">n_particles</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">v</span><span class="p">)</span>
+        <span class="n">sim</span><span class="o">.</span><span class="n">set_parameters</span><span class="p">(</span><span class="n">sgen</span><span class="o">.</span><span class="n">parameters</span><span class="p">)</span>
+        <span class="n">sim</span><span class="o">.</span><span class="n">set_box_size</span><span class="p">(</span><span class="n">sgen</span><span class="o">.</span><span class="n">image_shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="n">snr</span> <span class="o">=</span> <span class="n">sqrt_snr</span><span class="o">**</span><span class="mi">2</span>
+        <span class="n">sim</span><span class="o">.</span><span class="n">append_array</span><span class="p">(</span><span class="n">angles</span><span class="p">,</span> <span class="n">defocus</span><span class="p">,</span> <span class="n">snr</span><span class="p">,</span> <span class="n">projection</span><span class="p">,</span> <span class="n">normalized</span><span class="p">,</span> <span class="n">noisy</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">sim</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_simulate_core_eman</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+        <span class="c1"># Unpack arguments</span>
+        <span class="n">angles</span><span class="p">,</span> <span class="n">defocus</span><span class="p">,</span> <span class="n">store</span> <span class="o">=</span> <span class="n">args</span>
+        <span class="n">sgen</span><span class="p">,</span> <span class="n">ngen</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">signal</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">noise</span>
+        <span class="n">n_particles</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">angles</span><span class="p">)</span>
+
+        <span class="c1"># Simulate a set of particles</span>
+        <span class="n">particles</span><span class="p">,</span> <span class="n">indexes</span> <span class="o">=</span> <span class="p">[],</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">n_particles</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
+        <span class="n">proj_paths</span><span class="p">,</span> <span class="n">corrupted_paths</span> <span class="o">=</span> <span class="n">sgen</span><span class="o">.</span><span class="n">simulate_n</span><span class="p">(</span><span class="n">angles</span><span class="p">,</span> <span class="n">defocus</span><span class="p">,</span> <span class="n">store</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_particles</span><span class="p">):</span>
+            <span class="n">particle_i</span> <span class="o">=</span> <span class="n">EMNumPy</span><span class="o">.</span><span class="n">em2numpy</span><span class="p">(</span><span class="n">EMData</span><span class="p">(</span><span class="n">corrupted_paths</span><span class="p">,</span> <span class="n">i</span><span class="p">))</span>
+            <span class="n">particles</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">particle_i</span><span class="o">.</span><span class="n">copy</span><span class="p">())</span>
+        <span class="n">signal</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">particles</span><span class="p">)</span>
+        
+        <span class="c1"># Get SNR</span>
+        <span class="n">sqrt_snr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">snr</span><span class="o">.</span><span class="n">value</span><span class="p">(</span><span class="n">defocus</span><span class="o">/</span><span class="n">DEFOCUS_NORM</span><span class="p">))</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">snr</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">&quot;flat&quot;</span><span class="p">:</span>
+            <span class="n">sqrt_snr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">sqrt_snr</span><span class="p">]</span><span class="o">*</span><span class="n">n_particles</span><span class="p">)</span>
+
+        <span class="c1"># Simulate and add noise</span>
+        <span class="n">noisy_paths</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">background</span> <span class="o">=</span> <span class="n">ngen</span><span class="o">.</span><span class="n">simulate</span><span class="p">(</span><span class="n">sgen</span><span class="o">.</span><span class="n">image_shape</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="n">n_particles</span><span class="p">)</span>
+        <span class="n">noisy</span> <span class="o">=</span> <span class="n">signal</span> <span class="o">+</span> <span class="n">background</span><span class="o">/</span><span class="p">(</span><span class="n">sqrt_snr</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">])</span>
+        <span class="n">noisy</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">normalize</span><span class="p">(</span><span class="n">noisy</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_particles</span><span class="p">):</span>
+            <span class="n">EMNumPy</span><span class="o">.</span><span class="n">numpy2em</span><span class="p">(</span><span class="n">noisy</span><span class="p">[</span><span class="n">i</span><span class="p">])</span><span class="o">.</span><span class="n">write_image</span><span class="p">(</span><span class="n">store</span><span class="p">[</span><span class="s2">&quot;n&quot;</span><span class="p">],</span> <span class="n">i</span><span class="p">)</span>
+            <span class="n">noisy_paths</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">store</span><span class="p">[</span><span class="s2">&quot;n&quot;</span><span class="p">])</span>
+        
+        <span class="n">proj_paths</span> <span class="o">=</span> <span class="p">[</span><span class="n">proj_paths</span><span class="p">]</span> <span class="o">*</span> <span class="n">n_particles</span>
+        <span class="n">corrupted_paths</span> <span class="o">=</span> <span class="p">[</span><span class="n">corrupted_paths</span><span class="p">]</span> <span class="o">*</span> <span class="n">n_particles</span>
+        <span class="n">sim</span> <span class="o">=</span> <span class="n">SimResults</span><span class="p">(</span><span class="n">rtype</span><span class="o">=</span><span class="s2">&quot;disk&quot;</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="n">n_particles</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">sim</span><span class="o">.</span><span class="n">set_parameters</span><span class="p">(</span><span class="n">sgen</span><span class="o">.</span><span class="n">parameters</span><span class="p">)</span>
+        <span class="n">sim</span><span class="o">.</span><span class="n">set_box_size</span><span class="p">(</span><span class="n">sgen</span><span class="o">.</span><span class="n">image_shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="n">proj_paths</span> <span class="o">=</span> <span class="kc">None</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">proj_paths</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span> <span class="k">else</span> <span class="n">proj_paths</span>
+        <span class="n">corrupted_paths</span> <span class="o">=</span> <span class="kc">None</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">corrupted_paths</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span> <span class="k">else</span> <span class="n">corrupted_paths</span>
+        <span class="n">noisy_paths</span> <span class="o">=</span> <span class="kc">None</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">noisy_paths</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span> <span class="k">else</span> <span class="n">noisy_paths</span>
+        <span class="n">snr</span> <span class="o">=</span> <span class="n">sqrt_snr</span><span class="o">**</span><span class="mi">2</span>
+        <span class="n">sim</span><span class="o">.</span><span class="n">append_array</span><span class="p">(</span><span class="n">angles</span><span class="p">,</span> <span class="n">defocus</span><span class="p">,</span> <span class="n">snr</span><span class="p">,</span> <span class="n">proj_paths</span><span class="p">,</span> <span class="n">corrupted_paths</span><span class="p">,</span> <span class="n">noisy_paths</span><span class="p">,</span> <span class="n">indexes</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">sim</span><span class="o">.</span><span class="n">particles</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_simulate_core</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Simulate a set of particles and store the results on disk.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        args : tuple</span>
+<span class="sd">            A tuple containing:</span>
+<span class="sd">            - angles : array</span>
+<span class="sd">                A 2D array of shape (n_particles, 3) containing the Euler angles.</span>
+<span class="sd">            - defocus : array</span>
+<span class="sd">                A 1D array of shape (n_particles,) containing the defocus values.</span>
+<span class="sd">            - store : dict</span>
+<span class="sd">                A dictionary indicating paths for storing projections, corrupted, </span>
+<span class="sd">                and noisy signals with keys &quot;p&quot;, &quot;c&quot;, &quot;n&quot;.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        list</span>
+<span class="sd">            A list of particle data stored on disk.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">angles</span><span class="p">,</span> <span class="n">defocus</span><span class="p">,</span> <span class="n">store</span> <span class="o">=</span> <span class="n">args</span>
+        
+        <span class="n">n_particles</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">angles</span><span class="p">)</span>
+        <span class="n">sgen</span><span class="p">,</span> <span class="n">ngen</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">signal</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">noise</span>
+        <span class="n">volume</span> <span class="o">=</span> <span class="n">sgen</span><span class="o">.</span><span class="n">volume</span>
+        
+        <span class="n">particles</span><span class="p">,</span> <span class="n">indexes</span> <span class="o">=</span> <span class="p">[],</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">n_particles</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
+        <span class="n">proj_paths</span><span class="p">,</span> <span class="n">corrupted_paths</span><span class="p">,</span> <span class="n">noisy_paths</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[],</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_particles</span><span class="p">):</span>
+            <span class="n">alt</span><span class="p">,</span> <span class="n">az</span><span class="p">,</span> <span class="n">phi</span> <span class="o">=</span> <span class="n">angles</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="n">p</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">sgen</span><span class="o">.</span><span class="n">simulate</span><span class="p">(</span><span class="n">volume</span><span class="p">,</span> <span class="n">alt</span><span class="p">,</span> <span class="n">az</span><span class="p">,</span> <span class="n">phi</span><span class="p">,</span> <span class="n">defocus</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">store</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">particles</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">copy</span><span class="p">())</span>
+            <span class="k">if</span> <span class="n">store</span><span class="p">[</span><span class="s2">&quot;p&quot;</span><span class="p">]:</span>
+                <span class="n">EMNumPy</span><span class="o">.</span><span class="n">numpy2em</span><span class="p">(</span><span class="n">sgen</span><span class="o">.</span><span class="n">signal_clean</span><span class="p">)</span><span class="o">.</span><span class="n">write_image</span><span class="p">(</span><span class="n">store</span><span class="p">[</span><span class="s2">&quot;p&quot;</span><span class="p">],</span> <span class="n">i</span><span class="p">)</span>
+                <span class="n">proj_paths</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">store</span><span class="p">[</span><span class="s2">&quot;p&quot;</span><span class="p">])</span>
+            <span class="k">if</span> <span class="n">store</span><span class="p">[</span><span class="s2">&quot;c&quot;</span><span class="p">]:</span>
+                <span class="n">EMNumPy</span><span class="o">.</span><span class="n">numpy2em</span><span class="p">(</span><span class="n">sgen</span><span class="o">.</span><span class="n">signal_norm</span><span class="p">)</span><span class="o">.</span><span class="n">write_image</span><span class="p">(</span><span class="n">store</span><span class="p">[</span><span class="s2">&quot;c&quot;</span><span class="p">],</span> <span class="n">i</span><span class="p">)</span>
+                <span class="n">corrupted_paths</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">store</span><span class="p">[</span><span class="s2">&quot;c&quot;</span><span class="p">])</span>
+        <span class="n">background</span> <span class="o">=</span> <span class="n">ngen</span><span class="o">.</span><span class="n">simulate</span><span class="p">(</span><span class="n">sgen</span><span class="o">.</span><span class="n">image_shape</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="n">n_particles</span><span class="p">)</span>
+        
+        <span class="n">signal</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">particles</span><span class="p">)</span>
+        <span class="n">sqrt_snr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">snr</span><span class="o">.</span><span class="n">value</span><span class="p">(</span><span class="n">defocus</span><span class="o">/</span><span class="n">DEFOCUS_NORM</span><span class="p">))</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">snr</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">&quot;flat&quot;</span><span class="p">:</span>
+            <span class="n">sqrt_snr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">sqrt_snr</span><span class="p">]</span><span class="o">*</span><span class="n">n_particles</span><span class="p">)</span>
+        <span class="n">noisy</span> <span class="o">=</span> <span class="n">signal</span> <span class="o">+</span> <span class="n">background</span><span class="o">/</span><span class="p">(</span><span class="n">sqrt_snr</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">])</span>
+        <span class="n">noisy</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">normalize</span><span class="p">(</span><span class="n">noisy</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">store</span><span class="p">[</span><span class="s2">&quot;n&quot;</span><span class="p">]:</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_particles</span><span class="p">):</span>
+                <span class="n">EMNumPy</span><span class="o">.</span><span class="n">numpy2em</span><span class="p">(</span><span class="n">noisy</span><span class="p">[</span><span class="n">i</span><span class="p">])</span><span class="o">.</span><span class="n">write_image</span><span class="p">(</span><span class="n">store</span><span class="p">[</span><span class="s2">&quot;n&quot;</span><span class="p">],</span> <span class="n">i</span><span class="p">)</span>
+                <span class="n">noisy_paths</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">store</span><span class="p">[</span><span class="s2">&quot;n&quot;</span><span class="p">])</span>
+        
+        <span class="n">sim</span> <span class="o">=</span> <span class="n">SimResults</span><span class="p">(</span><span class="n">rtype</span><span class="o">=</span><span class="s2">&quot;disk&quot;</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="n">n_particles</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">sim</span><span class="o">.</span><span class="n">set_parameters</span><span class="p">(</span><span class="n">sgen</span><span class="o">.</span><span class="n">parameters</span><span class="p">)</span>
+        <span class="n">sim</span><span class="o">.</span><span class="n">set_box_size</span><span class="p">(</span><span class="n">sgen</span><span class="o">.</span><span class="n">image_shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="n">proj_paths</span> <span class="o">=</span> <span class="kc">None</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">proj_paths</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span> <span class="k">else</span> <span class="n">proj_paths</span>
+        <span class="n">corrupted_paths</span> <span class="o">=</span> <span class="kc">None</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">corrupted_paths</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span> <span class="k">else</span> <span class="n">corrupted_paths</span>
+        <span class="n">noisy_paths</span> <span class="o">=</span> <span class="kc">None</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">noisy_paths</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span> <span class="k">else</span> <span class="n">noisy_paths</span>
+        <span class="n">snr</span> <span class="o">=</span> <span class="n">sqrt_snr</span><span class="o">**</span><span class="mi">2</span>
+        <span class="n">sim</span><span class="o">.</span><span class="n">append_array</span><span class="p">(</span><span class="n">angles</span><span class="p">,</span> <span class="n">defocus</span><span class="p">,</span> <span class="n">snr</span><span class="p">,</span> <span class="n">proj_paths</span><span class="p">,</span> <span class="n">corrupted_paths</span><span class="p">,</span> <span class="n">noisy_paths</span><span class="p">,</span> <span class="n">indexes</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">sim</span><span class="o">.</span><span class="n">particles</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_simulate_dataset</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">angles</span><span class="p">,</span> <span class="n">defocus</span><span class="p">,</span> <span class="n">n_cpus</span><span class="p">,</span> <span class="n">chunk_size</span><span class="p">,</span> <span class="n">output</span><span class="p">,</span> <span class="n">intermediates</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">use_eman</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Simulate a set of particles and store the results on disk.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        angles : array</span>
+<span class="sd">            A 2D array of shape (n_particles, 3) containing the Euler angles.</span>
+<span class="sd">        defocus : array</span>
+<span class="sd">            A 1D array of shape (n_particles,) containing the defocus values.</span>
+<span class="sd">        n_cpus : int</span>
+<span class="sd">            The number of CPUs to use for simulation.</span>
+<span class="sd">        chunk_size : int</span>
+<span class="sd">            The number of particles to simulate per chunk.</span>
+<span class="sd">        output : str</span>
+<span class="sd">            The directory where to store the simulated particles.</span>
+<span class="sd">        intermediates : bool, optional</span>
+<span class="sd">            Whether to store intermediate results (clean and corrupted signals). Defaults to True.</span>
+<span class="sd">        use_eman : bool, optional</span>
+<span class="sd">            Whether to use EMAN framewokr for density projections. Defaults to False.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        SimResults</span>
+<span class="sd">            A SimResults object containing the simulated particles.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">output</span><span class="p">):</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">output</span><span class="p">)</span>
+
+        <span class="n">args</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">angles</span><span class="p">),</span> <span class="n">chunk_size</span><span class="p">):</span>
+            <span class="n">out_files_i</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s2">&quot;p&quot;</span><span class="p">:</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">output</span><span class="si">}</span><span class="s2">/clean_</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">.mrcs&quot;</span> <span class="k">if</span> <span class="n">intermediates</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+                <span class="s2">&quot;c&quot;</span><span class="p">:</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">output</span><span class="si">}</span><span class="s2">/corrupted_</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">.mrcs&quot;</span> <span class="k">if</span> <span class="n">intermediates</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+                <span class="s2">&quot;n&quot;</span><span class="p">:</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">output</span><span class="si">}</span><span class="s2">/noisy_</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">.mrcs&quot;</span>
+            <span class="p">}</span>
+            <span class="n">arg</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">angles</span><span class="p">[</span><span class="n">i</span><span class="p">:</span><span class="n">i</span><span class="o">+</span><span class="n">chunk_size</span><span class="p">],</span>
+                <span class="n">defocus</span><span class="p">[</span><span class="n">i</span><span class="p">:</span><span class="n">i</span><span class="o">+</span><span class="n">chunk_size</span><span class="p">],</span>
+                <span class="n">out_files_i</span>
+            <span class="p">)</span>
+            <span class="n">args</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">arg</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">v</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Simulating </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">angles</span><span class="p">)</span><span class="si">}</span><span class="s2"> particles distributed in </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span><span class="si">}</span><span class="s2"> chunks of size </span><span class="si">{</span><span class="n">chunk_size</span><span class="si">}</span><span class="s2">...&quot;</span><span class="p">)</span>
+        <span class="n">fn</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_simulate_core</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">use_eman</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">_simulate_core_eman</span>
+        <span class="k">with</span> <span class="n">Pool</span><span class="p">(</span><span class="n">processes</span><span class="o">=</span><span class="n">n_cpus</span><span class="p">)</span> <span class="k">as</span> <span class="n">pool</span><span class="p">:</span>
+            <span class="n">results</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">tqdm</span><span class="p">(</span>
+                        <span class="n">pool</span><span class="o">.</span><span class="n">imap</span><span class="p">(</span><span class="n">fn</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="n">chunksize</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span>
+                        <span class="n">total</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">),</span>
+                        <span class="n">desc</span><span class="o">=</span><span class="s2">&quot;Simulating&quot;</span><span class="p">,</span>
+                        <span class="n">ncols</span><span class="o">=</span><span class="mi">80</span><span class="p">,</span>
+                        <span class="n">file</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">stdout</span>
+                <span class="p">))</span>
+        
+        <span class="n">sim</span> <span class="o">=</span> <span class="n">SimResults</span><span class="p">(</span><span class="n">rtype</span><span class="o">=</span><span class="s2">&quot;disk&quot;</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">v</span><span class="p">)</span>
+        <span class="n">sim</span><span class="o">.</span><span class="n">particles</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">chain</span><span class="o">.</span><span class="n">from_iterable</span><span class="p">(</span><span class="n">results</span><span class="p">))</span>
+        <span class="n">sim</span><span class="o">.</span><span class="n">set_particle_number</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">sim</span><span class="o">.</span><span class="n">particles</span><span class="p">))</span>
+        <span class="n">sim</span><span class="o">.</span><span class="n">set_parameters</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">signal</span><span class="o">.</span><span class="n">parameters</span><span class="p">)</span>
+        <span class="n">sim</span><span class="o">.</span><span class="n">set_box_size</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">signal</span><span class="o">.</span><span class="n">image_shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="k">return</span> <span class="n">sim</span>
+
+<div class="viewcode-block" id="ParticleSimulator.simulate_dataset">
+<a class="viewcode-back" href="../../EMCrafter.html#EMCrafter.sim.ParticleSimulator.simulate_dataset">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">simulate_dataset</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">angles</span><span class="p">,</span> <span class="n">defocus</span><span class="p">,</span> <span class="n">n_cpus</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">chunk_size</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">quick</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">output</span><span class="o">=</span><span class="s2">&quot;particles&quot;</span><span class="p">,</span> <span class="n">intermediates</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">use_eman</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Simulate a set of particles and store the results on disk.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        angles : array</span>
+<span class="sd">            A 2D array of shape (n_particles, 3) containing the Euler angles.</span>
+<span class="sd">        defocus : array</span>
+<span class="sd">            A 1D array of shape (n_particles,) containing the defocus values.</span>
+<span class="sd">        n_cpus : int, optional</span>
+<span class="sd">            The number of CPUs to use for simulation. Defaults to 1.</span>
+<span class="sd">        chunk_size : int, optional</span>
+<span class="sd">            The number of particles to simulate per chunk. Defaults to 5.</span>
+<span class="sd">        quick : bool, optional</span>
+<span class="sd">            If True, simulate quickly by vectorizing projection and corruption steps. Defaults to False.</span>
+<span class="sd">        output : str, optional</span>
+<span class="sd">            The directory where to store the simulated particles. Defaults to &quot;particles&quot;.</span>
+<span class="sd">        intermediates : bool, optional</span>
+<span class="sd">            Whether to store intermediate results (clean and corrupted signals). Defaults to True.</span>
+<span class="sd">        use_eman : bool, optional</span>
+<span class="sd">            If True, use EMAN2 framework to simulate project the density. Defaults to False.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        SimResults</span>
+<span class="sd">            A SimResults object containing the simulated particles.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">v</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Starting &#39;</span><span class="si">{</span><span class="n">inspect</span><span class="o">.</span><span class="n">stack</span><span class="p">()[</span><span class="mi">0</span><span class="p">][</span><span class="mi">3</span><span class="p">]</span><span class="si">}</span><span class="s2">&#39;...&quot;</span><span class="p">)</span>
+        <span class="n">start_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="n">n_cpus</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span> <span class="n">n_cpus</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cpus</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">angles</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">defocus</span> <span class="o">=</span> <span class="n">angles</span><span class="p">,</span> <span class="n">defocus</span>
+        <span class="k">if</span> <span class="n">quick</span><span class="p">:</span> <span class="n">sim</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_simulate_quick</span><span class="p">(</span><span class="n">angles</span><span class="p">,</span> <span class="n">defocus</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span> <span class="n">sim</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_simulate_dataset</span><span class="p">(</span><span class="n">angles</span><span class="p">,</span> <span class="n">defocus</span><span class="p">,</span> <span class="n">n_cpus</span><span class="p">,</span> <span class="n">chunk_size</span><span class="p">,</span> <span class="n">output</span><span class="p">,</span> <span class="n">intermediates</span><span class="p">,</span> <span class="n">use_eman</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">v</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Finished &#39;</span><span class="si">{</span><span class="n">inspect</span><span class="o">.</span><span class="n">stack</span><span class="p">()[</span><span class="mi">0</span><span class="p">][</span><span class="mi">3</span><span class="p">]</span><span class="si">}</span><span class="s2">&#39; in </span><span class="si">{</span><span class="n">time_format</span><span class="p">(</span><span class="n">start_time</span><span class="p">,</span><span class="w"> </span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">())</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">sim</span></div>
+
+    
+<div class="viewcode-block" id="ParticleSimulator.info">
+<a class="viewcode-back" href="../../EMCrafter.html#EMCrafter.sim.ParticleSimulator.info">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">info</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">show</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Display plots for noise shaper, noise modulator, and SNR.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        show : bool, optional</span>
+<span class="sd">            If True, displays the plots. If False, the figure is closed. Defaults to True.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        fig : Figure</span>
+<span class="sd">            The matplotlib figure object containing the plots.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># Create combined figure</span>
+        <span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">8</span><span class="p">,</span> <span class="mf">2.5</span><span class="p">),</span> <span class="n">constrained_layout</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="c1"># Generate individual plots</span>
+        <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">noise</span><span class="o">.</span><span class="n">shaper</span><span class="o">.</span><span class="n">plot_density</span><span class="p">(</span><span class="n">show</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="n">ax</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">noise</span><span class="o">.</span><span class="n">modulator</span><span class="o">.</span><span class="n">plot_modulator_1D</span><span class="p">(</span><span class="n">show</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="n">ax</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+        <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">snr</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">show</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="n">ax</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+
+        <span class="n">ax</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">fontsize</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+        <span class="n">ax</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s2">&quot;Noise Shaper&quot;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="n">FONTSIZE</span><span class="p">)</span>
+        <span class="n">ax</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s2">&quot;Noise Modulator&quot;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="n">FONTSIZE</span><span class="p">)</span>
+        <span class="n">ax</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s2">&quot;SNR Scaled&quot;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="n">FONTSIZE</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">3</span><span class="p">):</span>
+            <span class="n">ax</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">xaxis</span><span class="o">.</span><span class="n">label</span><span class="o">.</span><span class="n">set_size</span><span class="p">(</span><span class="n">FONTSIZE</span><span class="o">-</span><span class="mi">2</span><span class="p">)</span>
+            <span class="n">ax</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">yaxis</span><span class="o">.</span><span class="n">label</span><span class="o">.</span><span class="n">set_size</span><span class="p">(</span><span class="n">FONTSIZE</span><span class="o">-</span><span class="mi">2</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">show</span><span class="p">:</span> <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span> <span class="n">plt</span><span class="o">.</span><span class="n">close</span><span class="p">(</span><span class="n">fig</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">fig</span></div>
+
+    
+<div class="viewcode-block" id="ParticleSimulator.load_shaper">
+<a class="viewcode-back" href="../../EMCrafter.html#EMCrafter.sim.ParticleSimulator.load_shaper">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">load_shaper</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file</span><span class="o">=</span><span class="s2">&quot;noise_shape.pkl&quot;</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Loads a saved NoiseShaper object from a file.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        file : str, optional</span>
+<span class="sd">            The file path from which the NoiseShaper object is to be loaded. Defaults to &quot;noise_shape.pkl&quot;.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        None</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">shaper</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">shaper</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">file</span><span class="p">)</span></div>
+
+    
+<div class="viewcode-block" id="ParticleSimulator.load_modulator">
+<a class="viewcode-back" href="../../EMCrafter.html#EMCrafter.sim.ParticleSimulator.load_modulator">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">load_modulator</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file</span><span class="o">=</span><span class="s2">&quot;noise_freq.pkl&quot;</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Loads a saved NoiseModulator object from a file.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        file : str, optional</span>
+<span class="sd">            The file path from which the NoiseModulator object is to be loaded. Defaults to &quot;noise_freq.pkl&quot;.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        None</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">modulator</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">modulator</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">file</span><span class="p">)</span></div>
+</div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Hermann Degenhardt.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
