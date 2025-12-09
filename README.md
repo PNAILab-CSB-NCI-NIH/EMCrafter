@@ -96,7 +96,7 @@ Additionally, inside [scripts](scripts) you can find a concise version of the si
 
 To run efficiently on HPC clusters or multi-core systems, you can distribute the simulation workload across multiple independent jobs. Our tests at the NCI FRCE cluster (**[Frederick Research Computing Environment](https://ncifrederick.cancer.gov/staff/FRCE/Documentation)**) shows that 25,000 particles can be generated in around 50 min using a single machine with 32 CPUs, simulating 100 images/job. Under this information, 500,000 particles could be simulated under an hour considering 20 parallel jobs with 32 CPUs each. The number and size of these jobs should be chosen based on your cluster’s resource availability, such as the number of available CPUs, memory limits, and queue policies.
 
-Once all jobs are complete, the SimResults class can seamlessly merge the outputs from multiple runs into a single consolidated dataset using the merge method (see **[EMCrafter Class Reference: - SimResults.merge](https://pnailab-csb-nci-nih.github.io/EMCrafter/sim.html#SimResults.merge)** and example at [merge.py](scripts/merge.py)) and exporting it as a single dataset. This enables scalable dataset generation while maintaining modularity and reproducibility.
+Once all jobs are complete, EMCrafter can seamlessly merge the outputs from multiple runs into a single consolidated dataset using the SimResults merge method (see **[SimResults.merge](https://pnailab-csb-nci-nih.github.io/EMCrafter/EMCrafter.html#EMCrafter.sim.SimResults.merge)** and full example at [merge.py](scripts/merge.py)) and exporting it as a single dataset. This enables scalable dataset generation while maintaining modularity and reproducibility.
 
 If EMCrafter helped your research, please cite:
 
