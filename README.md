@@ -13,6 +13,8 @@
 
 This framework can also be used to systematically test the limitations of existing cryo-EM algorithms by simulating datasets with controlled SNR levels and background noise characteristics. By adjusting these parameters, researchers/engineers/developers can evaluate algorithm robustness, identify failure modes, and, when feasible, develop strategies to correct them, ultimately leading to more resilient and accurate pipelines.
 
+More details at: [Nature Paper](https://www.nature.com/articles/s41586-026-11140-z)
+
 ## Key Features
 
 - **Realistic background modeling** from experimental cryo-EM micrographs.  
@@ -100,6 +102,7 @@ Once all jobs are complete, EMCrafter can seamlessly merge the outputs from mult
 
 If EMCrafter helped your research, please cite:
 
+
 Zenodo:
 ```bibtex
 @software{emcrafter2025,
@@ -109,5 +112,17 @@ Zenodo:
   publisher    = {Zenodo},
   doi          = {10.5281/zenodo.16366716},
   url          = {https://doi.org/10.5281/zenodo.16366716}
+}
+```
+
+Nature:
+```bibtex
+@article{degenhardt2026rna,
+  author       = {Degenhardt, M. F. S. and Degenhardt, H. F. and others},
+  title        = {RNA catalysis emerges from dynamic structural ensembles},
+  journal      = {Nature},
+  year         = {2026},
+  doi          = {10.1038/s41586-026-11140-z},
+  url          = {https://doi.org/10.1038/s41586-026-11140-z}
 }
 ```
