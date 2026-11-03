@@ -13,7 +13,10 @@
 
 This framework can also be used to systematically test the limitations of existing cryo-EM algorithms by simulating datasets with controlled SNR levels and background noise characteristics. By adjusting these parameters, researchers/engineers/developers can evaluate algorithm robustness, identify failure modes, and, when feasible, develop strategies to correct them, ultimately leading to more resilient and accurate pipelines.
 
-More details at: [Nature Paper](https://www.nature.com/articles/s41586-026-11140-z)
+![Extended_data_fig1](docs/images/ext_data_1.jpg)
+Reproduced from Extended Data Fig. 1 in Degenhardt, M.F.S., Degenhardt, H.F. et al.
+[RNA catalysis emerges from dynamic structural ensembles](https://doi.org/10.1038/s41586-026-11140-z).
+*Nature* (2026). Licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
 
 ## Key Features
 
